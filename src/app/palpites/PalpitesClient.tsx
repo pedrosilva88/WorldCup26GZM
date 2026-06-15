@@ -188,7 +188,7 @@ export default function PalpitesClient() {
                       />
                       {finished && pred && (
                         <div
-                          className="absolute top-3 right-3 text-[10px] font-black px-2 py-0.5 rounded-full"
+                          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-black px-2.5 py-0.5 rounded-full whitespace-nowrap"
                           style={
                             pts > 0
                               ? { background: "rgba(245,195,0,0.2)", color: "#f5c300", border: "1px solid rgba(245,195,0,0.3)" }
