@@ -115,7 +115,7 @@ export default function MatchCard({
       {/* Teams + score inputs */}
       <div className="flex items-center gap-3">
         {/* Home team */}
-        <div className={disabled ? "text-wc-white/35" : "text-wc-white"}>
+        <div className={cn("flex-1", disabled ? "text-wc-white/35" : "text-wc-white")}>
           <TeamFlag team={match.home_team} align="right" />
         </div>
 
@@ -182,7 +182,7 @@ export default function MatchCard({
         </div>
 
         {/* Away team */}
-        <div className={disabled ? "text-wc-white/35" : "text-wc-white"}>
+        <div className={cn("flex-1", disabled ? "text-wc-white/35" : "text-wc-white")}>
           <TeamFlag team={match.away_team} align="left" />
         </div>
       </div>
