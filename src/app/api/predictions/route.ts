@@ -9,7 +9,7 @@ function validateGoals(v: unknown): number | null {
 }
 
 export async function POST(req: NextRequest) {
-  const { token, predictions } = await req.json();
+  const { token, predictions, top_scorer, tournament_winner } = await req.json();
 
   if (!token || !Array.isArray(predictions)) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
@@ -35,18 +35,21 @@ export async function POST(req: NextRequest) {
 
   const openMatchIds = new Set((openMatches ?? []).map((m) => m.id));
 
-  // Check for existing predictions on open matches (prevent double-submit)
-  if (openMatchIds.size > 0) {
+  // Only accept predictions for open matches that this user doesn't already have
+  const submittedIds = predictions.map((p: { match_id: string }) => p.match_id).filter((id: string) => openMatchIds.has(id));
+  if (submittedIds.length > 0) {
     const { count } = await supabase
       .from("predictions")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .in("match_id", [...openMatchIds]);
+      .in("match_id", submittedIds);
 
     if ((count ?? 0) > 0) {
       return NextResponse.json({ error: "Já submeteste as tuas previsões." }, { status: 409 });
     }
   }
+
+  const VALID_1X2 = new Set(["1", "x", "2"]);
 
   const rows = [];
   for (const p of predictions) {
@@ -56,10 +59,12 @@ export async function POST(req: NextRequest) {
     const away = validateGoals(p.away_goals);
     if (home === null || away === null) continue;
 
+    const bet1x2 = VALID_1X2.has(p.bet_1x2) ? p.bet_1x2 : infer1x2(home, away);
+
     rows.push({
       user_id: user.id,
       match_id: p.match_id,
-      prediction_1x2: infer1x2(home, away),
+      prediction_1x2: bet1x2,
       home_goals: home,
       away_goals: away,
       points_earned: 0,
@@ -74,6 +79,14 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: "Erro ao guardar previsões." }, { status: 500 });
+  }
+
+  // Upsert global predictions
+  if (typeof top_scorer === "string" && typeof tournament_winner === "string") {
+    await supabase.from("global_predictions").upsert(
+      { user_id: user.id, top_scorer: top_scorer.trim(), tournament_winner },
+      { onConflict: "user_id" }
+    );
   }
 
   return NextResponse.json({ success: true, count: rows.length });

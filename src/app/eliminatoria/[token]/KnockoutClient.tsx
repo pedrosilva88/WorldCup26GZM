@@ -20,6 +20,8 @@ import Link from "next/link";
 interface PredictionState {
   home_goals: string;
   away_goals: string;
+  bet_1x2: string;
+  bet_1x2_manual: boolean;
 }
 
 interface Props { token: string; }
@@ -62,7 +64,7 @@ export default function KnockoutClient({ token }: Props) {
         }
 
         const init: Record<string, PredictionState> = {};
-        phaseMatches.forEach((m) => { init[m.id] = { home_goals: "", away_goals: "" }; });
+        phaseMatches.forEach((m) => { init[m.id] = { home_goals: "", away_goals: "", bet_1x2: "", bet_1x2_manual: false }; });
         setPredictions(init);
       } finally {
         setLoading(false);
@@ -73,7 +75,29 @@ export default function KnockoutClient({ token }: Props) {
 
   const updatePrediction = useCallback(
     (matchId: string, field: "home_goals" | "away_goals", value: string) => {
-      setPredictions((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [field]: value } }));
+      setPredictions((prev) => {
+        const current = prev[matchId];
+        const updated = { ...current, [field]: value };
+        if (!current.bet_1x2_manual) {
+          const h = parseInt(field === "home_goals" ? value : current.home_goals);
+          const a = parseInt(field === "away_goals" ? value : current.away_goals);
+          if (!isNaN(h) && !isNaN(a) && value !== "") {
+            updated.bet_1x2 = h > a ? "1" : h < a ? "2" : "x";
+          } else if (value === "") {
+            updated.bet_1x2 = "";
+          }
+        }
+        return { ...prev, [matchId]: updated };
+      });
+    }, []
+  );
+
+  const updateBet = useCallback(
+    (matchId: string, value: "1" | "x" | "2") => {
+      setPredictions((prev) => ({
+        ...prev,
+        [matchId]: { ...prev[matchId], bet_1x2: value, bet_1x2_manual: true },
+      }));
     }, []
   );
 
@@ -81,7 +105,7 @@ export default function KnockoutClient({ token }: Props) {
 
   const completionCount = openMatches.filter((m) => {
     const p = predictions[m.id];
-    return p?.home_goals !== "" && p?.away_goals !== "";
+    return p?.home_goals !== "" && p?.away_goals !== "" && p?.bet_1x2 !== "";
   }).length;
 
   const canSubmit = completionCount === openMatches.length && openMatches.length > 0;
@@ -97,6 +121,7 @@ export default function KnockoutClient({ token }: Props) {
         match_id: m.id,
         home_goals: parseInt(p?.home_goals ?? "0") || 0,
         away_goals: parseInt(p?.away_goals ?? "0") || 0,
+        bet_1x2: p?.bet_1x2 || null,
       };
     });
 
@@ -186,12 +211,12 @@ export default function KnockoutClient({ token }: Props) {
         </div>
 
         <div className="bg-wc-blue-mid/20 border border-wc-blue-mid/30 rounded-xl px-4 py-3 mb-4 text-xs text-wc-white/40 leading-relaxed">
-          Resultado ao fim dos 90 minutos. Em caso de prolongamento o palpite refere-se ao resultado no final do tempo regulamentar.
+          O resultado refere-se ao fim dos 90 min (ou prolongamento). A aposta 1X2 indica quem avança — podes prever empate no marcador mas apostar na vitória de uma equipa via penáltis.
         </div>
 
         <div className="space-y-3">
           {matches.map((match) => {
-            const pred = predictions[match.id] ?? { home_goals: "", away_goals: "" };
+            const pred = predictions[match.id] ?? { home_goals: "", away_goals: "", bet_1x2: "", bet_1x2_manual: false };
             const locked = match.status === "finished" || match.status === "live";
             return (
               <MatchCard
@@ -199,8 +224,10 @@ export default function KnockoutClient({ token }: Props) {
                 match={match}
                 home_goals={pred.home_goals}
                 away_goals={pred.away_goals}
+                bet_1x2={pred.bet_1x2}
                 disabled={locked}
                 onChange={(field, value) => updatePrediction(match.id, field, value)}
+                onChangeBet={(value) => updateBet(match.id, value)}
                 showResult={locked}
               />
             );

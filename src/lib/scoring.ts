@@ -16,7 +16,7 @@ export function calculatePoints(match: Match, prediction: Prediction): number {
   ) return 0;
 
   const actual1x2 = infer1x2(match.home_score, match.away_score);
-  const pred1x2 = infer1x2(prediction.home_goals, prediction.away_goals);
+  const pred1x2 = prediction.prediction_1x2 ?? infer1x2(prediction.home_goals, prediction.away_goals);
 
   let points = 0;
   if (pred1x2 === actual1x2) points += 1;

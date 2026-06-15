@@ -68,6 +68,8 @@ export default function AdminClient() {
   const [topScorerResult, setTopScorerResult] = useState("");
   const [winnerResult, setWinnerResult] = useState("");
   const [savingGlobal, setSavingGlobal] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalcMsg, setRecalcMsg] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -270,6 +272,16 @@ export default function AdminClient() {
       }),
     });
     setSavingGlobal(false);
+    await loadData();
+  }
+
+  async function recalculateScores() {
+    setRecalculating(true);
+    setRecalcMsg("");
+    const res = await fetch("/api/admin/recalculate", { method: "POST" });
+    const data = await res.json();
+    setRecalcMsg(data.error ?? `✓ ${data.updated} previsões recalculadas.`);
+    setRecalculating(false);
     await loadData();
   }
 
@@ -667,6 +679,21 @@ export default function AdminClient() {
                   <button onClick={saveGlobal} disabled={savingGlobal}
                     className="w-full h-11 bg-wc-gold hover:bg-wc-gold-light disabled:bg-wc-gold/30 text-wc-dark font-bold rounded-xl transition-all flex items-center justify-center gap-2">
                     {savingGlobal ? <Loader2 size={16} className="animate-spin" /> : "Guardar e Calcular Pontos"}
+                  </button>
+                </div>
+
+                {/* Recalculate scores */}
+                <div className="bg-wc-blue-mid/20 border border-wc-blue-mid/40 rounded-2xl p-5">
+                  <h3 className="text-sm font-bold text-wc-white mb-1">Recalcular Pontuações</h3>
+                  <p className="text-xs text-wc-white/40 mb-4">
+                    Recalcula os pontos de todos os jogos terminados com base nos 1X2 e resultados actuais. Usa isto após corrigir apostas manualmente.
+                  </p>
+                  {recalcMsg && (
+                    <p className="text-xs text-wc-white/50 mb-3 bg-wc-blue-mid/30 px-3 py-2 rounded-lg">{recalcMsg}</p>
+                  )}
+                  <button onClick={recalculateScores} disabled={recalculating}
+                    className="w-full h-11 bg-wc-blue-mid/40 hover:bg-wc-electric/20 border border-wc-electric/30 hover:border-wc-electric/60 text-wc-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-40">
+                    {recalculating ? <><Loader2 size={16} className="animate-spin" /> A recalcular...</> : <><RefreshCw size={16} /> Recalcular tudo</>}
                   </button>
                 </div>
               </div>

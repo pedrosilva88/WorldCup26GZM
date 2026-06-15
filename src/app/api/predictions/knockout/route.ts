@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const VALID_1X2 = new Set(["1", "x", "2"]);
+
   const rows = [];
   for (const p of predictions) {
     if (!openIds.has(p.match_id)) continue;
@@ -63,10 +65,12 @@ export async function POST(req: NextRequest) {
     const away = validateGoals(p.away_goals);
     if (home === null || away === null) continue;
 
+    const bet1x2 = VALID_1X2.has(p.bet_1x2) ? p.bet_1x2 : infer1x2(home, away);
+
     rows.push({
       user_id: user.id,
       match_id: p.match_id,
-      prediction_1x2: infer1x2(home, away),
+      prediction_1x2: bet1x2,
       home_goals: home,
       away_goals: away,
       points_earned: 0,

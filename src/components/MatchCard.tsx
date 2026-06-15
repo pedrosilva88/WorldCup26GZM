@@ -9,8 +9,10 @@ interface MatchCardProps {
   match: Match;
   home_goals: string;
   away_goals: string;
+  bet_1x2?: string;
   disabled: boolean;
   onChange: (field: "home_goals" | "away_goals", value: string) => void;
+  onChangeBet?: (value: "1" | "x" | "2") => void;
   showResult?: boolean;
 }
 
@@ -59,12 +61,19 @@ export default function MatchCard({
   match,
   home_goals,
   away_goals,
+  bet_1x2 = undefined,
   disabled,
   onChange,
+  onChangeBet,
   showResult = false,
 }: MatchCardProps) {
   const isFinished = match.status === "finished";
   const result = inferResult(home_goals, away_goals);
+  const show1x2 = bet_1x2 !== undefined;
+  const inferredBet = result
+    ? result.label === "Vitória 1" ? "1" : result.label === "Vitória 2" ? "2" : "x"
+    : null;
+  const betDiffersFromScore = bet_1x2 && inferredBet && bet_1x2 !== inferredBet;
 
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (BLOCKED_KEYS.includes(e.key)) e.preventDefault();
@@ -186,6 +195,44 @@ export default function MatchCard({
           <TeamFlag team={match.away_team} align="left" />
         </div>
       </div>
+
+      {/* 1X2 bet selector — only shown for group phase predictions */}
+      {show1x2 && <div className="mt-3 flex items-center gap-2">
+        <span className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 shrink-0">Aposta</span>
+        <div className="flex gap-1.5 flex-1">
+          {(["1", "x", "2"] as const).map((opt) => {
+            const labels = { "1": "1", "x": "X", "2": "2" };
+            const selected = bet_1x2 === opt;
+            const isDivergent = selected && betDiffersFromScore;
+            return (
+              <button
+                key={opt}
+                type="button"
+                disabled={disabled}
+                onClick={() => !disabled && onChangeBet?.(opt)}
+                className={cn(
+                  "flex-1 py-1.5 rounded-lg text-xs font-black tracking-wider transition-all",
+                  disabled ? "cursor-not-allowed" : "hover:opacity-90 active:scale-95"
+                )}
+                style={
+                  selected
+                    ? isDivergent
+                      ? { background: "rgba(245,195,0,0.25)", color: "#f5c300", border: "1px solid rgba(245,195,0,0.5)" }
+                      : { background: "rgba(245,195,0,0.15)", color: "#f5c300", border: "1px solid rgba(245,195,0,0.35)" }
+                    : disabled
+                    ? { background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.05)" }
+                    : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }
+                }
+              >
+                {labels[opt]}
+              </button>
+            );
+          })}
+        </div>
+        {betDiffersFromScore && !disabled && (
+          <span className="text-[9px] font-bold text-wc-gold/60 shrink-0">≠ placar</span>
+        )}
+      </div>}
     </div>
   );
 }
