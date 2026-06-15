@@ -70,7 +70,8 @@ create table if not exists public.settings (
 
 insert into public.settings (key, value) values
   ('top_scorer_result', null),
-  ('tournament_winner_result', null)
+  ('tournament_winner_result', null),
+  ('knockout_open_phase', null)   -- which knockout phase is open for predictions
 on conflict (key) do nothing;
 
 -- ============================================================
