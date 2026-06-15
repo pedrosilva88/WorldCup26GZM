@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { calculatePoints } from "@/lib/utils";
+import { calculatePoints } from "@/lib/scoring";
 import { Match, Prediction } from "@/types";
 
 const WC_2026_ID = 2000; // football-data.org competition ID for FIFA World Cup 2026

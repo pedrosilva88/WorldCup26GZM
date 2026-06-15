@@ -1,28 +1,39 @@
 "use client";
 
-import { Match, Prediction1x2 } from "@/types";
+import { Match } from "@/types";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
 
 interface MatchCardProps {
   match: Match;
-  prediction_1x2: Prediction1x2 | null;
   home_goals: string;
   away_goals: string;
   disabled: boolean;
-  onChange: (field: "prediction_1x2" | "home_goals" | "away_goals", value: string) => void;
+  onChange: (field: "home_goals" | "away_goals", value: string) => void;
   showResult?: boolean;
 }
 
-const OPTIONS: { value: Prediction1x2; label: string }[] = [
-  { value: "1", label: "1" },
-  { value: "x", label: "X" },
-  { value: "2", label: "2" },
-];
+function inferResult(home: string, away: string): { label: string; color: string } | null {
+  const h = parseInt(home);
+  const a = parseInt(away);
+  if (isNaN(h) || isNaN(a) || home === "" || away === "") return null;
+  if (h > a) return { label: "Vitória " + "1", color: "text-emerald-400" };
+  if (h < a) return { label: "Vitória " + "2", color: "text-sky-400" };
+  return { label: "Empate", color: "text-wc-gold" };
+}
+
+function sanitizeGoals(raw: string): string {
+  // Strip everything except digits, clamp to 0-20
+  const digits = raw.replace(/\D/g, "");
+  if (digits === "") return "";
+  const n = Math.min(parseInt(digits, 10), 20);
+  return String(n);
+}
+
+const BLOCKED_KEYS = ["e", "E", "+", "-", ".", ",", " "];
 
 export default function MatchCard({
   match,
-  prediction_1x2,
   home_goals,
   away_goals,
   disabled,
@@ -30,13 +41,22 @@ export default function MatchCard({
   showResult = false,
 }: MatchCardProps) {
   const isFinished = match.status === "finished";
+  const result = inferResult(home_goals, away_goals);
+
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (BLOCKED_KEYS.includes(e.key)) e.preventDefault();
+  }
+
+  function handleChange(field: "home_goals" | "away_goals", raw: string) {
+    onChange(field, sanitizeGoals(raw));
+  }
 
   return (
     <div
       className={cn(
         "rounded-2xl border p-4 transition-all",
         disabled
-          ? "bg-wc-blue/20 border-wc-blue-mid/20 opacity-60"
+          ? "bg-wc-blue/20 border-wc-blue-mid/20 opacity-70"
           : "bg-wc-blue-mid/20 border-wc-blue-mid/40 hover:border-wc-gold/30"
       )}
     >
@@ -45,111 +65,94 @@ export default function MatchCard({
         <span className="text-[10px] font-semibold tracking-widest uppercase text-wc-white/30">
           {match.group ? `Grupo ${match.group}` : "Eliminatória"}
         </span>
-        {disabled && (
-          <div className="flex items-center gap-1 text-wc-white/30">
-            <Lock size={10} />
-            <span className="text-[10px]">
-              {isFinished
-                ? `${match.home_score} - ${match.away_score}`
-                : "Encerrado"}
+        <div className="flex items-center gap-1.5">
+          {result && !disabled && (
+            <span className={cn("text-[10px] font-bold", result.color)}>
+              {result.label}
             </span>
-          </div>
-        )}
+          )}
+          {disabled && (
+            <div className="flex items-center gap-1 text-wc-white/30">
+              <Lock size={10} />
+              {isFinished && match.home_score !== null && (
+                <span className="text-[10px]">
+                  Real: {match.home_score}–{match.away_score}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Teams row */}
-      <div className="flex items-center gap-2 mb-4">
+      {/* Teams + score inputs */}
+      <div className="flex items-center gap-3">
         {/* Home team */}
-        <div className="flex-1 text-right">
-          <p className={cn(
-            "font-semibold text-sm leading-tight",
-            disabled ? "text-wc-white/50" : "text-wc-white"
-          )}>
-            {match.home_team}
-          </p>
-        </div>
+        <p className={cn(
+          "flex-1 text-right font-semibold text-sm leading-tight",
+          disabled ? "text-wc-white/40" : "text-wc-white"
+        )}>
+          {match.home_team}
+        </p>
 
-        {/* VS / Score */}
-        <div className="flex items-center justify-center w-10 shrink-0">
-          {showResult && isFinished ? (
-            <span className="text-xs font-bold text-wc-gold tabular-nums">
-              {match.home_score}-{match.away_score}
-            </span>
-          ) : (
-            <span className="text-xs text-wc-white/30 font-medium">vs</span>
-          )}
+        {/* Score inputs */}
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min="0"
+            max="20"
+            disabled={disabled}
+            value={home_goals}
+            onKeyDown={handleKey}
+            onChange={(e) => handleChange("home_goals", e.target.value)}
+            placeholder="0"
+            className={cn(
+              "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
+              disabled
+                ? home_goals !== ""
+                  ? "bg-wc-blue-mid/30 border-wc-blue-mid/30 text-wc-white/50 cursor-not-allowed"
+                  : "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
+                : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40 focus:scale-105"
+            )}
+          />
+
+          <span className={cn(
+            "font-black text-xl",
+            disabled ? "text-wc-white/20" : "text-wc-white/50"
+          )}>
+            –
+          </span>
+
+          <input
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min="0"
+            max="20"
+            disabled={disabled}
+            value={away_goals}
+            onKeyDown={handleKey}
+            onChange={(e) => handleChange("away_goals", e.target.value)}
+            placeholder="0"
+            className={cn(
+              "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
+              disabled
+                ? away_goals !== ""
+                  ? "bg-wc-blue-mid/30 border-wc-blue-mid/30 text-wc-white/50 cursor-not-allowed"
+                  : "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
+                : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40 focus:scale-105"
+            )}
+          />
         </div>
 
         {/* Away team */}
-        <div className="flex-1">
-          <p className={cn(
-            "font-semibold text-sm leading-tight",
-            disabled ? "text-wc-white/50" : "text-wc-white"
-          )}>
-            {match.away_team}
-          </p>
-        </div>
-      </div>
-
-      {/* 1X2 buttons */}
-      <div className="flex gap-2 mb-3">
-        {OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={disabled}
-            onClick={() => !disabled && onChange("prediction_1x2", opt.value)}
-            className={cn(
-              "flex-1 h-10 rounded-xl font-bold text-sm transition-all active:scale-95",
-              prediction_1x2 === opt.value
-                ? "bg-wc-gold text-wc-dark shadow-lg"
-                : disabled
-                ? "bg-wc-blue/30 text-wc-white/20 cursor-not-allowed"
-                : "bg-wc-blue-mid/40 text-wc-white/60 hover:bg-wc-blue-mid/70 hover:text-wc-white"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Score inputs */}
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          min="0"
-          max="20"
-          disabled={disabled}
-          value={home_goals}
-          onChange={(e) => onChange("home_goals", e.target.value)}
-          placeholder="0"
-          className={cn(
-            "flex-1 h-12 text-center text-xl font-bold rounded-xl border transition-all outline-none",
-            disabled
-              ? "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
-              : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40"
-          )}
-        />
-        <span className="text-wc-white/40 font-bold text-lg">—</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          min="0"
-          max="20"
-          disabled={disabled}
-          value={away_goals}
-          onChange={(e) => onChange("away_goals", e.target.value)}
-          placeholder="0"
-          className={cn(
-            "flex-1 h-12 text-center text-xl font-bold rounded-xl border transition-all outline-none",
-            disabled
-              ? "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
-              : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40"
-          )}
-        />
+        <p className={cn(
+          "flex-1 font-semibold text-sm leading-tight",
+          disabled ? "text-wc-white/40" : "text-wc-white"
+        )}>
+          {match.away_team}
+        </p>
       </div>
     </div>
   );

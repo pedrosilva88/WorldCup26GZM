@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export default function HeroSection() {
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
-      {/* Background gradient orbs */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden
-      >
+      {/* Background orbs */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div className="absolute top-[-10%] left-[20%] w-96 h-96 rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }} />
         <div className="absolute bottom-[-5%] right-[10%] w-80 h-80 rounded-full opacity-8"
@@ -24,7 +21,7 @@ export default function HeroSection() {
         <div className="inline-flex items-center gap-2 bg-wc-gold/10 border border-wc-gold/30 rounded-full px-4 py-1.5 mb-6">
           <span className="w-2 h-2 rounded-full bg-wc-red animate-pulse" />
           <span className="text-xs font-semibold tracking-widest uppercase text-wc-gold">
-            A Decorrer · Jun 2026
+            A Decorrer · Jun / Jul 2026
           </span>
         </div>
 
@@ -43,25 +40,16 @@ export default function HeroSection() {
           Compete com os teus amigos e sobe na classificação.
         </p>
 
-        {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/#inscricao"
-            className="inline-flex items-center justify-center gap-2 bg-wc-gold hover:bg-wc-gold-light text-wc-dark font-bold px-8 py-3.5 rounded-xl transition-all hover:scale-105 active:scale-95"
-          >
-            <Trophy size={18} />
-            Inscrever e Prever
-          </Link>
-          <Link
-            href="/#classificacao"
-            className="inline-flex items-center justify-center gap-2 border border-wc-blue-mid/60 text-wc-white/70 hover:text-wc-white hover:border-wc-gold/40 px-8 py-3.5 rounded-xl transition-all"
-          >
-            Ver Classificação
-          </Link>
-        </div>
+        {/* CTA */}
+        <Link
+          href="/#classificacao"
+          className="inline-flex items-center justify-center gap-2 border border-wc-blue-mid/60 text-wc-white/70 hover:text-wc-white hover:border-wc-gold/40 px-8 py-3.5 rounded-xl transition-all"
+        >
+          Ver Classificação
+        </Link>
 
         {/* Scoring legend */}
-        <div className="mt-12 flex flex-wrap justify-center gap-3 sm:gap-6">
+        <div className="mt-12 flex flex-wrap justify-center gap-3 sm:gap-4">
           {[
             { pts: "1 pt", label: "1X2 correto" },
             { pts: "3 pts", label: "Resultado exato" },
@@ -76,7 +64,6 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
       <div className="flex justify-center mt-14">
         <ChevronDown size={20} className="text-wc-white/20 animate-bounce" />
       </div>

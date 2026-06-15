@@ -1,59 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { infer1x2 } from "@/lib/scoring";
+
+function validateGoals(v: unknown): number | null {
+  if (typeof v !== "number") return null;
+  if (!Number.isInteger(v) || v < 0 || v > 20) return null;
+  return v;
+}
 
 export async function POST(req: NextRequest) {
   const { token, predictions } = await req.json();
 
-  if (!token || !predictions || !Array.isArray(predictions)) {
+  if (!token || !Array.isArray(predictions)) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
   }
 
   const supabase = createAdminClient();
 
-  // Validate token
   const { data: user } = await supabase
     .from("users")
     .select("id")
     .eq("token", token)
     .single();
 
-  if (!user) {
-    return NextResponse.json({ error: "Token inválido." }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Token inválido." }, { status: 401 });
 
-  // Check if user already submitted predictions for group stage
-  const { count } = await supabase
-    .from("predictions")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if ((count ?? 0) > 0) {
-    return NextResponse.json({ error: "Já submeteste as tuas previsões." }, { status: 409 });
-  }
-
-  // Get open (non-finished) group stage matches
+  // Get open group stage matches
   const { data: openMatches } = await supabase
     .from("matches")
     .select("id")
     .eq("phase", "group")
-    .neq("status", "finished");
+    .neq("status", "finished")
+    .neq("status", "live");
 
   const openMatchIds = new Set((openMatches ?? []).map((m) => m.id));
 
-  // Only insert predictions for open matches
-  const rows = predictions
-    .filter((p: { match_id: string }) => openMatchIds.has(p.match_id))
-    .map((p: { match_id: string; prediction_1x2: string; home_goals: number; away_goals: number }) => ({
+  // Check for existing predictions on open matches (prevent double-submit)
+  if (openMatchIds.size > 0) {
+    const { count } = await supabase
+      .from("predictions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("match_id", [...openMatchIds]);
+
+    if ((count ?? 0) > 0) {
+      return NextResponse.json({ error: "Já submeteste as tuas previsões." }, { status: 409 });
+    }
+  }
+
+  const rows = [];
+  for (const p of predictions) {
+    if (!openMatchIds.has(p.match_id)) continue;
+
+    const home = validateGoals(p.home_goals);
+    const away = validateGoals(p.away_goals);
+    if (home === null || away === null) continue;
+
+    rows.push({
       user_id: user.id,
       match_id: p.match_id,
-      prediction_1x2: p.prediction_1x2,
-      home_goals: p.home_goals,
-      away_goals: p.away_goals,
+      prediction_1x2: infer1x2(home, away),
+      home_goals: home,
+      away_goals: away,
       points_earned: 0,
-    }));
+    });
+  }
 
   if (rows.length === 0) {
-    return NextResponse.json({ error: "Sem jogos disponíveis para prever." }, { status: 400 });
+    return NextResponse.json({ error: "Sem jogos válidos para submeter." }, { status: 400 });
   }
 
   const { error } = await supabase.from("predictions").insert(rows);
