@@ -1,21 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy } from "lucide-react";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md border-b border-wc-blue-mid/40"
-      style={{ background: "rgba(6,14,26,0.92)" }}>
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <Trophy size={22} className="text-wc-gold group-hover:text-wc-gold-light transition-colors" />
-          <span className="font-bold text-base tracking-wide text-gold-gradient">MUNDIAL 2026</span>
-          <span className="text-xs font-medium text-wc-white/40 hidden sm:block ml-1">Bolão GZM</span>
+    <header className="sticky top-0 z-50 backdrop-blur-md border-b border-white/8"
+      style={{ background: "rgba(6,13,30,0.95)" }}>
+      {/* Colored top stripe — WC2026 style */}
+      <div className="h-1 w-full flex">
+        <div className="flex-1 bg-wc-electric" />
+        <div className="flex-1 bg-wc-red" />
+        <div className="flex-1 bg-wc-green" />
+        <div className="flex-1 bg-wc-gold" />
+      </div>
+      <div className="max-w-5xl mx-auto px-4 h-13 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-display text-wc-navy text-xl leading-none"
+            style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
+            26
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="font-display text-wc-white text-lg tracking-wider leading-none">BOLÃO</span>
+            <span className="text-[10px] font-semibold tracking-widest uppercase text-wc-white/30 leading-none mt-0.5">
+              GZM · Mundial 2026
+            </span>
+          </div>
         </Link>
         <Link
           href="/#classificacao"
-          className="text-sm text-wc-white/60 hover:text-wc-gold px-3 py-1.5 rounded-lg hover:bg-wc-blue-mid/30 transition-all"
+          className="text-sm font-bold text-wc-white/50 hover:text-wc-gold px-3 py-1.5 rounded-lg hover:bg-wc-gold/10 transition-all tracking-wide"
         >
           Classificação
         </Link>

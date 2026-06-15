@@ -10,8 +10,14 @@ export default function HomePage() {
       <Header />
       <HeroSection />
       <LeaderboardSection />
-      <footer className="border-t border-wc-blue-mid/30 mt-16 py-8 text-center text-xs text-wc-white/20">
-        <p>Mundial 2026 · Bolão GZM</p>
+      <footer className="border-t border-white/6 mt-8 py-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="w-4 h-1 rounded-full bg-wc-electric opacity-50" />
+          <div className="w-4 h-1 rounded-full bg-wc-red opacity-50" />
+          <div className="w-4 h-1 rounded-full bg-wc-green opacity-50" />
+          <div className="w-4 h-1 rounded-full bg-wc-gold opacity-50" />
+        </div>
+        <p className="text-xs text-wc-white/20 font-display tracking-widest">MUNDIAL 2026 · BOLÃO GZM</p>
       </footer>
     </main>
   );

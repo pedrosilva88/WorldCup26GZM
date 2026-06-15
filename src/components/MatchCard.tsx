@@ -3,6 +3,7 @@
 import { Match } from "@/types";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
+import { getFlagUrl } from "@/lib/flags";
 
 interface MatchCardProps {
   match: Match;
@@ -17,13 +18,12 @@ function inferResult(home: string, away: string): { label: string; color: string
   const h = parseInt(home);
   const a = parseInt(away);
   if (isNaN(h) || isNaN(a) || home === "" || away === "") return null;
-  if (h > a) return { label: "Vitória " + "1", color: "text-emerald-400" };
-  if (h < a) return { label: "Vitória " + "2", color: "text-sky-400" };
+  if (h > a) return { label: "Vitória 1", color: "text-wc-green" };
+  if (h < a) return { label: "Vitória 2", color: "text-wc-electric" };
   return { label: "Empate", color: "text-wc-gold" };
 }
 
 function sanitizeGoals(raw: string): string {
-  // Strip everything except digits, clamp to 0-20
   const digits = raw.replace(/\D/g, "");
   if (digits === "") return "";
   const n = Math.min(parseInt(digits, 10), 20);
@@ -31,6 +31,29 @@ function sanitizeGoals(raw: string): string {
 }
 
 const BLOCKED_KEYS = ["e", "E", "+", "-", ".", ",", " "];
+
+function TeamFlag({ team, align }: { team: string; align: "left" | "right" }) {
+  const url = getFlagUrl(team, "w40");
+  return (
+    <div className={cn("flex-1 flex items-center gap-2 min-w-0", align === "right" ? "flex-row-reverse" : "flex-row")}>
+      {url && (
+        <img
+          src={url}
+          alt={team}
+          width={22}
+          height={15}
+          className="rounded-[3px] shrink-0 shadow-sm"
+        />
+      )}
+      <p className={cn(
+        "font-semibold text-sm leading-tight truncate",
+        align === "right" ? "text-right" : "text-left"
+      )}>
+        {team}
+      </p>
+    </div>
+  );
+}
 
 export default function MatchCard({
   match,
@@ -56,13 +79,18 @@ export default function MatchCard({
       className={cn(
         "rounded-2xl border p-4 transition-all",
         disabled
-          ? "bg-wc-blue/20 border-wc-blue-mid/20 opacity-70"
-          : "bg-wc-blue-mid/20 border-wc-blue-mid/40 hover:border-wc-gold/30"
+          ? "border-white/6 opacity-70"
+          : "border-white/10 hover:border-wc-electric/30"
       )}
+      style={
+        disabled
+          ? { background: "rgba(255,255,255,0.02)" }
+          : { background: "rgba(35,82,240,0.06)" }
+      }
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold tracking-widest uppercase text-wc-white/30">
+        <span className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25">
           {match.group ? `Grupo ${match.group}` : "Eliminatória"}
         </span>
         <div className="flex items-center gap-1.5">
@@ -72,7 +100,7 @@ export default function MatchCard({
             </span>
           )}
           {disabled && (
-            <div className="flex items-center gap-1 text-wc-white/30">
+            <div className="flex items-center gap-1 text-wc-white/25">
               <Lock size={10} />
               {isFinished && match.home_score !== null && (
                 <span className="text-[10px]">
@@ -87,12 +115,9 @@ export default function MatchCard({
       {/* Teams + score inputs */}
       <div className="flex items-center gap-3">
         {/* Home team */}
-        <p className={cn(
-          "flex-1 text-right font-semibold text-sm leading-tight",
-          disabled ? "text-wc-white/40" : "text-wc-white"
-        )}>
-          {match.home_team}
-        </p>
+        <div className={disabled ? "text-wc-white/35" : "text-wc-white"}>
+          <TeamFlag team={match.home_team} align="right" />
+        </div>
 
         {/* Score inputs */}
         <div className="flex items-center gap-2 shrink-0">
@@ -111,15 +136,20 @@ export default function MatchCard({
               "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
               disabled
                 ? home_goals !== ""
-                  ? "bg-wc-blue-mid/30 border-wc-blue-mid/30 text-wc-white/50 cursor-not-allowed"
-                  : "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
-                : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40 focus:scale-105"
+                  ? "border-white/10 text-wc-white/40 cursor-not-allowed"
+                  : "border-white/5 text-wc-white/15 cursor-not-allowed"
+                : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105"
             )}
+            style={
+              disabled
+                ? { background: "rgba(255,255,255,0.04)" }
+                : { background: "rgba(35,82,240,0.15)" }
+            }
           />
 
           <span className={cn(
             "font-black text-xl",
-            disabled ? "text-wc-white/20" : "text-wc-white/50"
+            disabled ? "text-wc-white/15" : "text-wc-white/40"
           )}>
             –
           </span>
@@ -139,20 +169,22 @@ export default function MatchCard({
               "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
               disabled
                 ? away_goals !== ""
-                  ? "bg-wc-blue-mid/30 border-wc-blue-mid/30 text-wc-white/50 cursor-not-allowed"
-                  : "bg-wc-blue/20 border-wc-blue-mid/20 text-wc-white/20 cursor-not-allowed"
-                : "bg-wc-blue/40 border-wc-blue-mid/50 text-wc-white focus:border-wc-gold focus:bg-wc-blue-mid/40 focus:scale-105"
+                  ? "border-white/10 text-wc-white/40 cursor-not-allowed"
+                  : "border-white/5 text-wc-white/15 cursor-not-allowed"
+                : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105"
             )}
+            style={
+              disabled
+                ? { background: "rgba(255,255,255,0.04)" }
+                : { background: "rgba(35,82,240,0.15)" }
+            }
           />
         </div>
 
         {/* Away team */}
-        <p className={cn(
-          "flex-1 font-semibold text-sm leading-tight",
-          disabled ? "text-wc-white/40" : "text-wc-white"
-        )}>
-          {match.away_team}
-        </p>
+        <div className={disabled ? "text-wc-white/35" : "text-wc-white"}>
+          <TeamFlag team={match.away_team} align="left" />
+        </div>
       </div>
     </div>
   );

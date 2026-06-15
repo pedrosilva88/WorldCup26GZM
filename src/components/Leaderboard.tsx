@@ -1,25 +1,55 @@
 "use client";
 
 import { LeaderboardEntry } from "@/types";
-import { Trophy, Medal, Star, Target } from "lucide-react";
+import { Trophy, Star, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
 }
 
-const RANK_STYLES = [
-  { bg: "bg-wc-gold/20 border-wc-gold/50", text: "text-wc-gold", icon: <Trophy size={16} className="text-wc-gold" /> },
-  { bg: "bg-slate-400/10 border-slate-400/30", text: "text-slate-300", icon: <Medal size={16} className="text-slate-300" /> },
-  { bg: "bg-amber-700/10 border-amber-700/30", text: "text-amber-600", icon: <Medal size={16} className="text-amber-600" /> },
+const RANK_CONFIG = [
+  {
+    bg: "border-wc-gold/40",
+    cardStyle: { background: "rgba(245,195,0,0.08)" },
+    numStyle: { color: "#f5c300" },
+    badge: (
+      <div className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
+        <Trophy size={14} className="text-wc-dark" />
+      </div>
+    ),
+  },
+  {
+    bg: "border-slate-400/25",
+    cardStyle: { background: "rgba(148,163,184,0.06)" },
+    numStyle: { color: "#cbd5e1" },
+    badge: (
+      <div className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ background: "rgba(148,163,184,0.15)", border: "1px solid rgba(148,163,184,0.3)" }}>
+        <span className="text-slate-300 font-display text-base">2</span>
+      </div>
+    ),
+  },
+  {
+    bg: "border-amber-700/25",
+    cardStyle: { background: "rgba(180,83,9,0.06)" },
+    numStyle: { color: "#d97706" },
+    badge: (
+      <div className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ background: "rgba(180,83,9,0.15)", border: "1px solid rgba(180,83,9,0.3)" }}>
+        <span className="text-amber-600 font-display text-base">3</span>
+      </div>
+    ),
+  },
 ];
 
 export default function Leaderboard({ entries }: LeaderboardProps) {
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 text-wc-white/40">
+      <div className="text-center py-16 text-wc-white/30">
         <Trophy size={48} className="mx-auto mb-3 opacity-20" />
-        <p className="text-sm">Ainda sem participantes. Sê o primeiro a inscrever-te!</p>
+        <p className="text-sm">A classificação estará disponível quando começar o torneio.</p>
       </div>
     );
   }
@@ -27,47 +57,59 @@ export default function Leaderboard({ entries }: LeaderboardProps) {
   return (
     <div className="space-y-2">
       {entries.map((entry, idx) => {
-        const style = RANK_STYLES[idx] ?? {
-          bg: "bg-wc-blue-mid/20 border-wc-blue-mid/30",
-          text: "text-wc-white/60",
-          icon: <span className="text-xs font-bold text-wc-white/40">{idx + 1}</span>,
-        };
+        const cfg = RANK_CONFIG[idx];
+        const isTop = idx < 3;
 
         return (
           <div
             key={entry.user_id}
             className={cn(
-              "flex items-center gap-3 p-3 sm:p-4 rounded-xl border transition-all",
-              style.bg,
+              "flex items-center gap-3 p-3.5 rounded-2xl border transition-all",
+              isTop ? cfg.bg : "border-white/6",
               idx === 0 && "glow-gold"
             )}
+            style={isTop ? cfg.cardStyle : { background: "rgba(255,255,255,0.03)" }}
           >
-            {/* Rank */}
-            <div className="w-7 flex items-center justify-center shrink-0">
-              {style.icon}
+            {/* Rank badge */}
+            <div className="shrink-0">
+              {isTop ? (
+                cfg.badge
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <span className="font-display text-wc-white/30 text-base">{idx + 1}</span>
+                </div>
+              )}
             </div>
 
-            {/* Name */}
+            {/* Name + stats */}
             <div className="flex-1 min-w-0">
-              <p className={cn("font-semibold truncate", style.text)}>
+              <p className={cn(
+                "font-bold truncate leading-tight",
+                idx === 0 ? "text-wc-gold" : idx < 3 ? "text-wc-white" : "text-wc-white/60"
+              )}>
                 {entry.user_name}
               </p>
               <div className="flex gap-3 mt-0.5">
-                <span className="text-xs text-wc-white/40 flex items-center gap-1">
-                  <Target size={10} /> {entry.correct_1x2} 1x2
+                <span className="text-[11px] text-wc-white/30 flex items-center gap-1">
+                  <Target size={9} /> {entry.correct_1x2} 1x2
                 </span>
-                <span className="text-xs text-wc-white/40 flex items-center gap-1">
-                  <Star size={10} /> {entry.correct_scores} resultados
+                <span className="text-[11px] text-wc-white/30 flex items-center gap-1">
+                  <Star size={9} /> {entry.correct_scores} exatos
                 </span>
               </div>
             </div>
 
             {/* Points */}
             <div className="text-right shrink-0">
-              <p className={cn("text-xl font-bold tabular-nums", style.text)}>
+              <p className="font-display tabular-nums leading-none"
+                style={{
+                  fontSize: "1.75rem",
+                  ...(isTop ? cfg.numStyle : { color: "rgba(255,255,255,0.4)" }),
+                }}>
                 {entry.total_points}
               </p>
-              <p className="text-xs text-wc-white/30">pts</p>
+              <p className="text-[10px] text-wc-white/25 tracking-widest uppercase">pts</p>
             </div>
           </div>
         );
