@@ -152,8 +152,8 @@ export default function MatchCard({
                   )}
                   style={
                     disabled
-                      ? { background: "rgba(255,255,255,0.04)" }
-                      : { background: "rgba(35,82,240,0.15)" }
+                      ? { background: "rgba(255,255,255,0.04)", textAlignLast: "center" }
+                      : { background: "rgba(35,82,240,0.15)", textAlignLast: "center" }
                   }
                 >
                   <option value="" style={{ background: "#0a1628", color: "rgba(255,255,255,0.3)" }}>–</option>
