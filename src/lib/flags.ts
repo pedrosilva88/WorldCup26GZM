@@ -1,3 +1,70 @@
+export const TEAM_CODES: Record<string, string> = {
+  // Group A
+  "México": "MEX",
+  "África do Sul": "RSA",
+  "Korea do Sul": "KOR",
+  "República Checa": "CZE",
+  // Group B
+  "Canadá": "CAN",
+  "Bósnia H.": "BIH",
+  "Qatar": "QAT",
+  "Suíça": "SUI",
+  // Group C
+  "Brasil": "BRA",
+  "Marrocos": "MAR",
+  "Haiti": "HAI",
+  "Escócia": "SCO",
+  // Group D
+  "Estados Unidos": "USA",
+  "Paraguai": "PAR",
+  "Austrália": "AUS",
+  "Turquia": "TUR",
+  // Group E
+  "Alemanha": "GER",
+  "Curaçau": "CUW",
+  "Costa do Marfim": "CIV",
+  "Equador": "ECU",
+  // Group F
+  "Holanda": "NED",
+  "Japão": "JPN",
+  "Suécia": "SWE",
+  "Tunísia": "TUN",
+  // Group G
+  "Bélgica": "BEL",
+  "Egito": "EGY",
+  "Irão": "IRN",
+  "Nova Zelândia": "NZL",
+  // Group H
+  "Espanha": "ESP",
+  "Cabo Verde": "CPV",
+  "Arábia Saudita": "KSA",
+  "Uruguai": "URU",
+  // Group I
+  "França": "FRA",
+  "Senegal": "SEN",
+  "Iraque": "IRQ",
+  "Noruega": "NOR",
+  // Group J
+  "Argentina": "ARG",
+  "Argélia": "ALG",
+  "Áustria": "AUT",
+  "Jordânia": "JOR",
+  // Group K
+  "Portugal": "POR",
+  "Congo": "CGO",
+  "Uzbequistão": "UZB",
+  "Colômbia": "COL",
+  // Group L
+  "Inglaterra": "ENG",
+  "Croácia": "CRO",
+  "Gana": "GHA",
+  "Panamá": "PAN",
+};
+
+export function getTeamCode(team: string): string {
+  return TEAM_CODES[team] ?? team.slice(0, 3).toUpperCase();
+}
+
 const FLAG_CODES: Record<string, string> = {
   // Group A
   "México": "mx",

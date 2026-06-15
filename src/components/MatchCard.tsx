@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import { Match } from "@/types";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
-import { getFlagUrl } from "@/lib/flags";
+import { getFlagUrl, getTeamCode } from "@/lib/flags";
 
 interface MatchCardProps {
   match: Match;
@@ -25,17 +26,11 @@ function inferResult(home: string, away: string): { label: string; color: string
   return { label: "Empate", color: "text-wc-gold" };
 }
 
-function sanitizeGoals(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits === "") return "";
-  const n = Math.min(parseInt(digits, 10), 20);
-  return String(n);
-}
-
-const BLOCKED_KEYS = ["e", "E", "+", "-", ".", ",", " "];
+const GOAL_OPTIONS = Array.from({ length: 10 }, (_, i) => String(i));
 
 function TeamFlag({ team, align }: { team: string; align: "left" | "right" }) {
   const url = getFlagUrl(team, "w40");
+  const code = getTeamCode(team);
   return (
     <div className={cn("flex-1 flex items-center gap-2 min-w-0", align === "right" ? "flex-row-reverse" : "flex-row")}>
       {url && (
@@ -47,8 +42,16 @@ function TeamFlag({ team, align }: { team: string; align: "left" | "right" }) {
           className="rounded-[3px] shrink-0 shadow-sm"
         />
       )}
+      {/* 3-char code: phones (sm-md) */}
       <p className={cn(
-        "font-semibold text-sm leading-tight truncate",
+        "hidden sm:block md:hidden font-bold text-xs tracking-wider shrink-0",
+        align === "right" ? "text-right" : "text-left"
+      )}>
+        {code}
+      </p>
+      {/* Full name: md+ */}
+      <p className={cn(
+        "hidden md:block font-semibold text-sm leading-tight truncate",
         align === "right" ? "text-right" : "text-left"
       )}>
         {team}
@@ -74,14 +77,6 @@ export default function MatchCard({
     ? result.label === "Vitória 1" ? "1" : result.label === "Vitória 2" ? "2" : "x"
     : null;
   const betDiffersFromScore = bet_1x2 && inferredBet && bet_1x2 !== inferredBet;
-
-  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (BLOCKED_KEYS.includes(e.key)) e.preventDefault();
-  }
-
-  function handleChange(field: "home_goals" | "away_goals", raw: string) {
-    onChange(field, sanitizeGoals(raw));
-  }
 
   return (
     <div
@@ -128,66 +123,47 @@ export default function MatchCard({
           <TeamFlag team={match.home_team} align="right" />
         </div>
 
-        {/* Score inputs */}
+        {/* Score dropdowns */}
         <div className="flex items-center gap-2 shrink-0">
-          <input
-            type="number"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            min="0"
-            max="20"
-            disabled={disabled}
-            value={home_goals}
-            onKeyDown={handleKey}
-            onChange={(e) => handleChange("home_goals", e.target.value)}
-            placeholder="0"
-            className={cn(
-              "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
-              disabled
-                ? home_goals !== ""
-                  ? "border-white/10 text-wc-white/40 cursor-not-allowed"
-                  : "border-white/5 text-wc-white/15 cursor-not-allowed"
-                : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105"
-            )}
-            style={
-              disabled
-                ? { background: "rgba(255,255,255,0.04)" }
-                : { background: "rgba(35,82,240,0.15)" }
-            }
-          />
-
-          <span className={cn(
-            "font-black text-xl",
-            disabled ? "text-wc-white/15" : "text-wc-white/40"
-          )}>
-            –
-          </span>
-
-          <input
-            type="number"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            min="0"
-            max="20"
-            disabled={disabled}
-            value={away_goals}
-            onKeyDown={handleKey}
-            onChange={(e) => handleChange("away_goals", e.target.value)}
-            placeholder="0"
-            className={cn(
-              "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none",
-              disabled
-                ? away_goals !== ""
-                  ? "border-white/10 text-wc-white/40 cursor-not-allowed"
-                  : "border-white/5 text-wc-white/15 cursor-not-allowed"
-                : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105"
-            )}
-            style={
-              disabled
-                ? { background: "rgba(255,255,255,0.04)" }
-                : { background: "rgba(35,82,240,0.15)" }
-            }
-          />
+          {(["home_goals", "away_goals"] as const).map((field, idx) => {
+            const value = field === "home_goals" ? home_goals : away_goals;
+            const hasValue = value !== "";
+            return (
+              <React.Fragment key={field}>
+                {idx === 1 && (
+                  <span className={cn(
+                    "font-black text-xl select-none",
+                    disabled ? "text-wc-white/15" : "text-wc-white/40"
+                  )}>
+                    –
+                  </span>
+                )}
+                <select
+                  disabled={disabled}
+                  value={value}
+                  onChange={(e) => onChange(field, e.target.value)}
+                  className={cn(
+                    "w-14 h-14 text-center text-2xl font-black rounded-xl border transition-all outline-none appearance-none",
+                    disabled
+                      ? hasValue
+                        ? "border-white/10 text-wc-white/40 cursor-not-allowed"
+                        : "border-white/5 text-wc-white/15 cursor-not-allowed"
+                      : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105 cursor-pointer"
+                  )}
+                  style={
+                    disabled
+                      ? { background: "rgba(255,255,255,0.04)" }
+                      : { background: "rgba(35,82,240,0.15)" }
+                  }
+                >
+                  <option value="" style={{ background: "#0a1628", color: "rgba(255,255,255,0.3)" }}>–</option>
+                  {GOAL_OPTIONS.map((n) => (
+                    <option key={n} value={n} style={{ background: "#0a1628", color: "#fff" }}>{n}</option>
+                  ))}
+                </select>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {/* Away team */}
