@@ -26,12 +26,20 @@ export default function Header() {
             </span>
           </div>
         </Link>
-        <Link
-          href="/#classificacao"
-          className="text-sm font-bold text-wc-white/50 hover:text-wc-gold px-3 py-1.5 rounded-lg hover:bg-wc-gold/10 transition-all tracking-wide"
-        >
-          Classificação
-        </Link>
+        <nav className="flex items-center gap-1">
+          <Link
+            href="/palpites"
+            className="text-sm font-bold text-wc-white/50 hover:text-wc-white px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all tracking-wide"
+          >
+            Palpites
+          </Link>
+          <Link
+            href="/#classificacao"
+            className="text-sm font-bold text-wc-white/50 hover:text-wc-gold px-3 py-1.5 rounded-lg hover:bg-wc-gold/10 transition-all tracking-wide"
+          >
+            Classificação
+          </Link>
+        </nav>
       </div>
     </header>
   );
