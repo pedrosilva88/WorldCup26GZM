@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m pip install openpyxl -q)",
+      "Bash(python3 *)",
+      "Read(//Users/pedrosilva/Development/**)",
+      "Bash(npx create-next-app@latest worldcupgzm --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack)"
+    ]
+  }
+}
