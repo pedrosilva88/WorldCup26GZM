@@ -52,9 +52,9 @@ export default function PredictionsClient({ token }: Props) {
         setUser(u);
         setMatches(matchData);
 
-        if (has_predictions) { setSubmitted(true); return; }
+        if (has_predictions) setSubmitted(true);
 
-        // Load any pre-filled predictions (admin-entered for past matches)
+        // Always load predictions — pre-filled (admin) or submitted (user)
         const predRes = await fetch(`/api/user-predictions?token=${token}`);
         const existingPreds: Array<{ match_id: string; home_goals: number | null; away_goals: number | null }> =
           predRes.ok ? await predRes.json() : [];
@@ -67,7 +67,6 @@ export default function PredictionsClient({ token }: Props) {
           };
         });
 
-        // Init all matches (use pre-filled where available)
         const init: Record<string, PredictionState> = {};
         matchData.forEach((m: Match) => {
           init[m.id] = predMap[m.id] ?? { home_goals: "", away_goals: "" };
@@ -91,7 +90,7 @@ export default function PredictionsClient({ token }: Props) {
     matches.filter((m) => m.phase === "group" && m.group === group);
 
   const isMatchLocked = (match: Match) =>
-    match.status === "finished" || match.status === "live";
+    submitted || match.status === "finished" || match.status === "live";
 
   const openGroupMatches = matches.filter(
     (m) => m.phase === "group" && !isMatchLocked(m)
@@ -148,28 +147,6 @@ export default function PredictionsClient({ token }: Props) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={32} className="text-wc-gold animate-spin" />
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <CheckCircle2 size={56} className="mx-auto text-wc-gold mb-5" />
-          <h2 className="font-display text-3xl text-wc-white tracking-wider mb-2">PREVISÕES SUBMETIDAS!</h2>
-          <p className="text-sm text-wc-white/50 mb-6 leading-relaxed">
-            As tuas previsões foram guardadas, {user?.name}.
-            <br />
-            Acompanha a classificação na página principal.
-          </p>
-          <Link href="/"
-            className="inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl transition-all text-wc-dark"
-            style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
-            <Trophy size={18} />
-            Ver Classificação
-          </Link>
-        </div>
       </div>
     );
   }
@@ -272,33 +249,50 @@ export default function PredictionsClient({ token }: Props) {
         )}
       </div>
 
-      {/* Sticky submit */}
+      {/* Sticky bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 backdrop-blur-md" style={{ background: "rgba(6,13,30,0.97)" }}>
         <div className="max-w-2xl mx-auto px-4 py-4">
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-wc-red mb-3 border border-wc-red/30 rounded-xl px-3 py-2"
-              style={{ background: "rgba(230,51,18,0.1)" }}>
-              <AlertCircle size={14} className="shrink-0" />{error}
+          {submitted ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-wc-green shrink-0" />
+                <span className="text-sm font-bold text-wc-white">Previsões submetidas</span>
+                <span className="text-xs text-wc-white/30">· modo leitura</span>
+              </div>
+              <Link href="/"
+                className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark transition-all"
+                style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
+                Classificação
+              </Link>
             </div>
+          ) : (
+            <>
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-wc-red mb-3 border border-wc-red/30 rounded-xl px-3 py-2"
+                  style={{ background: "rgba(230,51,18,0.1)" }}>
+                  <AlertCircle size={14} className="shrink-0" />{error}
+                </div>
+              )}
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit || submitting}
+                className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
+                style={
+                  canSubmit && !submitting
+                    ? { background: "linear-gradient(135deg, #f5c300, #ffd93d)" }
+                    : { background: "rgba(255,255,255,0.08)" }
+                }
+              >
+                {submitting ? (
+                  <><Loader2 size={20} className="animate-spin text-wc-dark" /> A guardar...</>
+                ) : canSubmit ? (
+                  <><Trophy size={20} /> Submeter Previsões</>
+                ) : (
+                  <span className="text-wc-white/30">{`Preenche todos os jogos (${openGroupMatches.length - completionCount} em falta)`}</span>
+                )}
+              </button>
+            </>
           )}
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
-            style={
-              canSubmit && !submitting
-                ? { background: "linear-gradient(135deg, #f5c300, #ffd93d)" }
-                : { background: "rgba(255,255,255,0.08)" }
-            }
-          >
-            {submitting ? (
-              <><Loader2 size={20} className="animate-spin text-wc-dark" /> A guardar...</>
-            ) : canSubmit ? (
-              <><Trophy size={20} /> Submeter Previsões</>
-            ) : (
-              <span className="text-wc-white/30">{`Preenche todos os jogos (${openGroupMatches.length - completionCount} em falta)`}</span>
-            )}
-          </button>
         </div>
       </div>
     </div>
