@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { infer1x2 } from "@/lib/scoring";
+import { infer1x2, calculatePoints } from "@/lib/scoring";
+import { Match, Prediction } from "@/types";
 
 function validateGoals(v: unknown): number | null {
   if (typeof v !== "number") return null;
@@ -75,10 +76,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sem jogos válidos para submeter." }, { status: 400 });
   }
 
-  const { error } = await supabase.from("predictions").insert(rows);
+  const { data: inserted, error } = await supabase.from("predictions").insert(rows).select();
 
   if (error) {
     return NextResponse.json({ error: "Erro ao guardar previsões." }, { status: 500 });
+  }
+
+  // Recalculate points for predictions whose match is already finished
+  const insertedMatchIds = (inserted ?? []).map((p) => p.match_id);
+  if (insertedMatchIds.length > 0) {
+    const { data: finishedMatches } = await supabase
+      .from("matches")
+      .select("*")
+      .in("id", insertedMatchIds)
+      .eq("status", "finished");
+
+    for (const match of finishedMatches ?? []) {
+      const predsForMatch = (inserted ?? []).filter((p) => p.match_id === match.id);
+      for (const pred of predsForMatch) {
+        const pts = calculatePoints(match as Match, pred as Prediction);
+        if (pts > 0) {
+          await supabase.from("predictions").update({ points_earned: pts }).eq("id", pred.id);
+        }
+      }
+    }
   }
 
   // Upsert global predictions

@@ -93,10 +93,21 @@ async function syncFromApi() {
   return { synced, errors: errors.length > 0 ? errors : undefined };
 }
 
+export async function GET(req: NextRequest) {
+  return handleSync(req);
+}
+
 export async function POST(req: NextRequest) {
+  return handleSync(req);
+}
+
+async function handleSync(req: NextRequest) {
   const cronSecret = req.headers.get("x-cron-secret");
+  const authHeader = req.headers.get("authorization");
   const isAdmin = await isAdminAuthenticated();
-  const isCron = cronSecret === process.env.ADMIN_PASSWORD;
+  const isCron =
+    cronSecret === process.env.ADMIN_PASSWORD ||
+    authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
   if (!isAdmin && !isCron) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
