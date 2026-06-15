@@ -56,12 +56,18 @@ export async function getFinishedMatches(apiKey: string): Promise<ApiMatch[]> {
   return json.matches ?? [];
 }
 
-// Translate team name from API to Portuguese where possible
+// Translate team name from API (English) to Portuguese
 const TEAM_NAME_MAP: Record<string, string> = {
   "Mexico": "México",
   "South Africa": "África do Sul",
+  // API returns "South Korea" (also "Korea Republic" in some endpoints)
+  "South Korea": "Korea do Sul",
   "Korea Republic": "Korea do Sul",
+  // API returns "Czechia" (also "Czech Republic")
+  "Czechia": "República Checa",
   "Czech Republic": "República Checa",
+  // API returns "Bosnia-Herzegovina" (also "Bosnia and Herzegovina")
+  "Bosnia-Herzegovina": "Bósnia H.",
   "Bosnia and Herzegovina": "Bósnia H.",
   "Switzerland": "Suíça",
   "Morocco": "Marrocos",
@@ -96,6 +102,7 @@ const TEAM_NAME_MAP: Record<string, string> = {
   "Jordan": "Jordânia",
   "Portugal": "Portugal",
   "Congo DR": "Congo",
+  "Congo": "Congo",
   "Uzbekistan": "Uzbequistão",
   "Colombia": "Colômbia",
   "England": "Inglaterra",
