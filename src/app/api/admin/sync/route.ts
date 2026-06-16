@@ -30,13 +30,15 @@ async function syncFromApi() {
     const awayScore = apiMatch.score?.fullTime?.away;
     if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) continue;
 
-    // 1. Try to find by api_match_id
+    // 1. Try to find by api_match_id (no status filter — check below)
     let { data: match } = await supabase
       .from("matches")
       .select("*")
       .eq("api_match_id", apiMatch.id)
-      .neq("status", "finished")
       .maybeSingle();
+
+    // Already synced — skip silently
+    if (match?.status === "finished") continue;
 
     // 2. Fall back to Portuguese team name lookup
     if (!match) {
@@ -48,10 +50,15 @@ async function syncFromApi() {
         .select("*")
         .eq("home_team", homePT)
         .eq("away_team", awayPT)
-        .neq("status", "finished")
         .maybeSingle();
 
-      match = byName;
+      if (byName?.status === "finished") {
+        // Already synced via name; cache api_match_id and skip
+        await supabase.from("matches").update({ api_match_id: apiMatch.id }).eq("id", byName.id);
+        continue;
+      }
+
+      match = byName ?? null;
 
       if (match) {
         // Cache the api_match_id for future syncs
@@ -64,10 +71,15 @@ async function syncFromApi() {
       }
     }
 
-    // Update result
+    // Update result (also cache match_date if not yet set)
     const { data: updatedMatch, error: updateErr } = await supabase
       .from("matches")
-      .update({ home_score: homeScore, away_score: awayScore, status: "finished" })
+      .update({
+        home_score: homeScore,
+        away_score: awayScore,
+        status: "finished",
+        ...(match.match_date ? {} : { match_date: apiMatch.utcDate }),
+      })
       .eq("id", match.id)
       .select()
       .single();

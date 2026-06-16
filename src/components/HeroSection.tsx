@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -70,15 +69,6 @@ export default function HeroSection() {
             </div>
           ))}
         </div>
-
-        {/* CTA */}
-        <Link
-          href="/#classificacao"
-          className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-wc-dark transition-all active:scale-95 text-sm"
-          style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}
-        >
-          Ver Classificação
-        </Link>
 
         {/* Scoring pills */}
         <div className="mt-10 flex flex-wrap justify-center gap-2">
