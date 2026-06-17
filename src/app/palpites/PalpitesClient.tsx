@@ -93,8 +93,8 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
   const styles = {
     exact:   { bg: "#100d00", border: "#2e2200", scoreColor: "#f5c300", ptsBg: "#3a2e00", ptsTxt: "#f5c300", betTxt: "#e8c94a", betBg: "#2a2200" },
     partial: { bg: "#0d1608", border: "#1e3010", scoreColor: "#5ed46a", ptsBg: "#1a3a1a", ptsTxt: "#5ed46a", betTxt: "#4caf74", betBg: "#1a3a1a" },
-    wrong:   { bg: "#0e0e0e", border: "#1a1a1a", scoreColor: "#2e2e2e", ptsBg: "#1c1c1c", ptsTxt: "#444",    betTxt: "#333",    betBg: "#1a1a1a" },
-    pending: { bg: "#0e0e0e", border: "#1e1e1e", scoreColor: "#555",    ptsBg: "transparent", ptsTxt: "#2a2a2a", betTxt: "#555", betBg: "#1e1e1e" },
+    wrong:   { bg: "#0e0e0e", border: "#1a1a1a", scoreColor: "#2e2e2e", ptsBg: "#1c1c1c", ptsTxt: "#444",    betTxt: "#666",    betBg: "#2a2a2a" },
+    pending: { bg: "#0e0e0e", border: "#1e1e1e", scoreColor: "#555",    ptsBg: "transparent", ptsTxt: "#2a2a2a", betTxt: "#777", betBg: "#2a2a2a" },
   }[state];
 
   const showBadge = hasScore && state !== "pending";
