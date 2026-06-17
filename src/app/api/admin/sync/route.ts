@@ -26,8 +26,9 @@ async function syncFromApi() {
   const errors: string[] = [];
 
   for (const apiMatch of apiMatches) {
-    const homeScore = apiMatch.score?.fullTime?.home;
-    const awayScore = apiMatch.score?.fullTime?.away;
+    // Use extraTime score if available (knockout with ET/penalties); fallback to fullTime (group stage or 90-min KO wins)
+    const homeScore = apiMatch.score?.extraTime?.home ?? apiMatch.score?.fullTime?.home;
+    const awayScore = apiMatch.score?.extraTime?.away ?? apiMatch.score?.fullTime?.away;
     if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) continue;
 
     // 1. Try to find by api_match_id (no status filter — check below)
