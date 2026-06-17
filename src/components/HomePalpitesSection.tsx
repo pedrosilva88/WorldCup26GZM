@@ -95,18 +95,22 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
       )}
 
       <div style={{ position: "absolute", bottom: 7, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center" }}>
-        {(["1", "x", "2"] as const).map((opt, i) => (
-          <span key={opt} style={{ display: "flex", alignItems: "center" }}>
-            {i > 0 && <span style={{ fontSize: 8, color: "#1e1e1e", padding: "0 1px" }}>·</span>}
-            <span style={{
-              fontSize: 9, fontWeight: 700, padding: "1px 3px", borderRadius: 3,
-              color: bet === opt ? styles.betTxt : "#252525",
-              background: bet === opt ? styles.betBg : "transparent",
-            }}>
-              {opt.toUpperCase()}
+        {(["1", "x", "2"] as const).map((opt, i) => {
+          const isSelected = bet === opt;
+          return (
+            <span key={opt} style={{ display: "flex", alignItems: "center" }}>
+              {i > 0 && <span style={{ fontSize: 8, color: styles.betTxt, padding: "0 1px", opacity: 0.2 }}>·</span>}
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding: "1px 3px", borderRadius: 3,
+                color: styles.betTxt,
+                background: isSelected ? styles.betBg : "transparent",
+                opacity: isSelected ? 1 : 0.2,
+              }}>
+                {opt.toUpperCase()}
+              </span>
             </span>
-          </span>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
