@@ -29,11 +29,6 @@ interface GlobalState {
   tournament_winner: string;
 }
 
-interface MatchdayLock {
-  matchday: number;
-  lock_time: string;
-  is_locked: boolean;
-}
 
 const WC2026_TEAMS = [
   "África do Sul", "Alemanha", "Arábia Saudita", "Argentina", "Argélia",
@@ -52,12 +47,6 @@ interface Props {
   token: string;
 }
 
-function formatLockTime(isoStr: string): string {
-  return new Date(isoStr).toLocaleString("pt-PT", {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    timeZone: "Europe/Lisbon",
-  });
-}
 
 export default function PredictionsClient({ token }: Props) {
   const router = useRouter();
@@ -67,7 +56,6 @@ export default function PredictionsClient({ token }: Props) {
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [loading, setLoading] = useState(true);
   const [globalPred, setGlobalPred] = useState<GlobalState>({ top_scorer: "", tournament_winner: "" });
-  const [lockInfo, setLockInfo] = useState<MatchdayLock[]>([]);
   const [globalLocked, setGlobalLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -76,21 +64,18 @@ export default function PredictionsClient({ token }: Props) {
   useEffect(() => {
     async function init() {
       try {
-        const [userRes, matchRes, lockRes] = await Promise.all([
+        const [userRes, matchRes] = await Promise.all([
           fetch(`/api/user?token=${token}`),
           fetch("/api/matches"),
-          fetch("/api/predictions/lock-info"),
         ]);
 
         if (!userRes.ok) { router.push("/"); return; }
 
         const { user: u } = await userRes.json();
         const matchData: Match[] = await matchRes.json();
-        const lockData = lockRes.ok ? await lockRes.json() : { lockInfo: [] };
 
         setUser(u);
         setMatches(matchData);
-        setLockInfo(lockData.lockInfo ?? []);
 
         // Load existing predictions
         const predRes = await fetch(`/api/user-predictions?token=${token}`);
@@ -130,16 +115,13 @@ export default function PredictionsClient({ token }: Props) {
     init();
   }, [token, router]);
 
-  const isMatchdayLocked = useCallback((matchday: number | null | undefined): boolean => {
-    if (!matchday) return true;
-    const info = lockInfo.find((l) => l.matchday === matchday);
-    return info ? info.is_locked : true;
-  }, [lockInfo]);
+  const LOCK_OFFSET_MS = 2 * 60 * 60 * 1000;
 
   const isMatchLocked = useCallback((match: Match): boolean => {
     if (match.status === "finished" || match.status === "live") return true;
-    return isMatchdayLocked(match.matchday);
-  }, [isMatchdayLocked]);
+    if (!match.match_date) return false;
+    return Date.now() >= new Date(match.match_date).getTime() - LOCK_OFFSET_MS;
+  }, []);
 
   const updatePrediction = useCallback(
     (matchId: string, field: "home_goals" | "away_goals", value: string) => {
@@ -195,13 +177,6 @@ export default function PredictionsClient({ token }: Props) {
     return { filled, total: open.length };
   };
 
-  // Get lock info for a matchday to show in header
-  const getMatchdayLockLabel = (matchday: number) => {
-    const info = lockInfo.find((l) => l.matchday === matchday);
-    if (!info) return null;
-    if (info.is_locked) return "Encerrada";
-    return `Fecha ${formatLockTime(info.lock_time)}`;
-  };
 
   async function handleSave() {
     setSubmitting(true);
@@ -250,10 +225,6 @@ export default function PredictionsClient({ token }: Props) {
     );
   }
 
-  // Derive matchday for active group's matches (to show lock info)
-  const activeGroupMatchdays = [...new Set(
-    groupMatches(activeGroup).map((m) => m.matchday).filter(Boolean)
-  )] as number[];
 
   return (
     <div className="min-h-screen pb-32">
@@ -332,25 +303,6 @@ export default function PredictionsClient({ token }: Props) {
             </span>
             <span className="font-display text-wc-gold text-lg tracking-wider">GRUPO {activeGroup}</span>
           </div>
-          {/* Jornada lock status for this group */}
-          {activeGroupMatchdays.length > 0 && (
-            <div className="flex gap-2">
-              {activeGroupMatchdays.map((md) => {
-                const label = getMatchdayLockLabel(md);
-                const locked = isMatchdayLocked(md);
-                return label ? (
-                  <span key={md} className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                    style={locked
-                      ? { background: "rgba(255,255,255,0.06)", color: "#555" }
-                      : { background: "rgba(245,195,0,0.1)", color: "#e8c94a", border: "1px solid rgba(245,195,0,0.2)" }
-                    }>
-                    {locked ? <Lock size={9} /> : null}
-                    J{md} · {label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-          )}
         </div>
 
         <div className="space-y-3">

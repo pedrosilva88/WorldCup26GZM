@@ -28,37 +28,27 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Token inválido." }, { status: 401 });
 
-  // Load all group matches with matchday + status
+  // Load all group matches
   const { data: allMatches } = await supabase
     .from("matches")
-    .select("id, matchday, match_date, status")
+    .select("id, match_date, status")
     .eq("phase", "group");
 
-  // Compute lock time per matchday
-  const earliest: Record<number, number> = {};
-  for (const m of allMatches ?? []) {
-    if (!m.matchday || !m.match_date) continue;
-    const t = new Date(m.match_date).getTime();
-    if (!earliest[m.matchday] || t < earliest[m.matchday]) {
-      earliest[m.matchday] = t;
-    }
-  }
-
   const now = Date.now();
-  const isMatchdayLocked = (matchday: number | null) => {
-    if (!matchday || !earliest[matchday]) return true;
-    return now >= earliest[matchday] - LOCK_OFFSET_MS;
-  };
 
-  // Build editable match set: not finished/live, matchday not locked
+  // Each match locks individually 2h before its kick-off
   const editableMatchIds = new Set(
     (allMatches ?? [])
-      .filter((m) => m.status !== "finished" && m.status !== "live" && !isMatchdayLocked(m.matchday))
+      .filter((m) =>
+        m.status !== "finished" &&
+        m.status !== "live" &&
+        m.match_date &&
+        now < new Date(m.match_date).getTime() - LOCK_OFFSET_MS
+      )
       .map((m) => m.id)
   );
 
   const VALID_1X2 = new Set(["1", "x", "2"]);
-  const matchById = new Map((allMatches ?? []).map((m) => [m.id, m]));
 
   const rows = [];
   for (const p of predictions) {
