@@ -28,6 +28,7 @@ export interface Match {
   status: MatchStatus;
   api_match_id?: number | null;
   match_order: number;
+  matchday?: number | null;
 }
 
 export interface User {

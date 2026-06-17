@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { infer1x2, calculatePoints } from "@/lib/scoring";
 import { Match, Prediction } from "@/types";
 
+const LOCK_OFFSET_MS = 2 * 60 * 60 * 1000; // 2h before first match of matchday
+
 function validateGoals(v: unknown): number | null {
   if (typeof v !== "number") return null;
   if (!Number.isInteger(v) || v < 0 || v > 20) return null;
@@ -26,35 +28,41 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Token inválido." }, { status: 401 });
 
-  // Get open group stage matches
-  const { data: openMatches } = await supabase
+  // Load all group matches with matchday + status
+  const { data: allMatches } = await supabase
     .from("matches")
-    .select("id")
-    .eq("phase", "group")
-    .neq("status", "finished")
-    .neq("status", "live");
+    .select("id, matchday, match_date, status")
+    .eq("phase", "group");
 
-  const openMatchIds = new Set((openMatches ?? []).map((m) => m.id));
-
-  // Only accept predictions for open matches that this user doesn't already have
-  const submittedIds = predictions.map((p: { match_id: string }) => p.match_id).filter((id: string) => openMatchIds.has(id));
-  if (submittedIds.length > 0) {
-    const { count } = await supabase
-      .from("predictions")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .in("match_id", submittedIds);
-
-    if ((count ?? 0) > 0) {
-      return NextResponse.json({ error: "Já submeteste as tuas previsões." }, { status: 409 });
+  // Compute lock time per matchday
+  const earliest: Record<number, number> = {};
+  for (const m of allMatches ?? []) {
+    if (!m.matchday || !m.match_date) continue;
+    const t = new Date(m.match_date).getTime();
+    if (!earliest[m.matchday] || t < earliest[m.matchday]) {
+      earliest[m.matchday] = t;
     }
   }
 
+  const now = Date.now();
+  const isMatchdayLocked = (matchday: number | null) => {
+    if (!matchday || !earliest[matchday]) return true;
+    return now >= earliest[matchday] - LOCK_OFFSET_MS;
+  };
+
+  // Build editable match set: not finished/live, matchday not locked
+  const editableMatchIds = new Set(
+    (allMatches ?? [])
+      .filter((m) => m.status !== "finished" && m.status !== "live" && !isMatchdayLocked(m.matchday))
+      .map((m) => m.id)
+  );
+
   const VALID_1X2 = new Set(["1", "x", "2"]);
+  const matchById = new Map((allMatches ?? []).map((m) => [m.id, m]));
 
   const rows = [];
   for (const p of predictions) {
-    if (!openMatchIds.has(p.match_id)) continue;
+    if (!editableMatchIds.has(p.match_id)) continue;
 
     const home = validateGoals(p.home_goals);
     const away = validateGoals(p.away_goals);
@@ -73,26 +81,30 @@ export async function POST(req: NextRequest) {
   }
 
   if (rows.length === 0) {
-    return NextResponse.json({ error: "Sem jogos válidos para submeter." }, { status: 400 });
+    return NextResponse.json({ error: "Sem jogos válidos ou jornada já encerrada." }, { status: 400 });
   }
 
-  const { data: inserted, error } = await supabase.from("predictions").insert(rows).select();
+  // Upsert — allows updating existing predictions for open matchdays
+  const { data: upserted, error } = await supabase
+    .from("predictions")
+    .upsert(rows, { onConflict: "user_id,match_id" })
+    .select();
 
   if (error) {
     return NextResponse.json({ error: "Erro ao guardar previsões." }, { status: 500 });
   }
 
-  // Recalculate points for predictions whose match is already finished
-  const insertedMatchIds = (inserted ?? []).map((p) => p.match_id);
-  if (insertedMatchIds.length > 0) {
+  // Recalculate points for any already-finished matches (shouldn't happen but just in case)
+  const upsertedMatchIds = (upserted ?? []).map((p) => p.match_id);
+  if (upsertedMatchIds.length > 0) {
     const { data: finishedMatches } = await supabase
       .from("matches")
       .select("*")
-      .in("id", insertedMatchIds)
+      .in("id", upsertedMatchIds)
       .eq("status", "finished");
 
     for (const match of finishedMatches ?? []) {
-      const predsForMatch = (inserted ?? []).filter((p) => p.match_id === match.id);
+      const predsForMatch = (upserted ?? []).filter((p) => p.match_id === match.id);
       for (const pred of predsForMatch) {
         const pts = calculatePoints(match as Match, pred as Prediction);
         if (pts > 0) {

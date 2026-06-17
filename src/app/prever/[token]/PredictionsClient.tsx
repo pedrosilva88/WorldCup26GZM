@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +27,12 @@ interface PredictionState {
 interface GlobalState {
   top_scorer: string;
   tournament_winner: string;
+}
+
+interface MatchdayLock {
+  matchday: number;
+  lock_time: string;
+  is_locked: boolean;
 }
 
 const WC2026_TEAMS = [
@@ -45,6 +52,13 @@ interface Props {
   token: string;
 }
 
+function formatLockTime(isoStr: string): string {
+  return new Date(isoStr).toLocaleString("pt-PT", {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    timeZone: "Europe/Lisbon",
+  });
+}
+
 export default function PredictionsClient({ token }: Props) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -53,30 +67,31 @@ export default function PredictionsClient({ token }: Props) {
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [loading, setLoading] = useState(true);
   const [globalPred, setGlobalPred] = useState<GlobalState>({ top_scorer: "", tournament_winner: "" });
-  const [preFilledIds, setPreFilledIds] = useState<Set<string>>(new Set());
+  const [lockInfo, setLockInfo] = useState<MatchdayLock[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function init() {
       try {
-        const [userRes, matchRes] = await Promise.all([
+        const [userRes, matchRes, lockRes] = await Promise.all([
           fetch(`/api/user?token=${token}`),
           fetch("/api/matches"),
+          fetch("/api/predictions/lock-info"),
         ]);
 
         if (!userRes.ok) { router.push("/"); return; }
 
-        const { user: u, has_predictions } = await userRes.json();
+        const { user: u } = await userRes.json();
         const matchData: Match[] = await matchRes.json();
+        const lockData = lockRes.ok ? await lockRes.json() : { lockInfo: [] };
 
         setUser(u);
         setMatches(matchData);
+        setLockInfo(lockData.lockInfo ?? []);
 
-        if (has_predictions) setSubmitted(true);
-
-        // Always load predictions — pre-filled (admin) or submitted (user)
+        // Load existing predictions
         const predRes = await fetch(`/api/user-predictions?token=${token}`);
         const predData = predRes.ok ? await predRes.json() : { predictions: [], global: null };
         const existingPreds: Array<{ match_id: string; home_goals: number | null; away_goals: number | null; prediction_1x2: string | null }> =
@@ -90,7 +105,6 @@ export default function PredictionsClient({ token }: Props) {
         }
 
         const predMap: Record<string, PredictionState> = {};
-        const filledIds = new Set<string>();
         existingPreds.forEach((p) => {
           predMap[p.match_id] = {
             home_goals: p.home_goals !== null ? String(p.home_goals) : "",
@@ -98,11 +112,7 @@ export default function PredictionsClient({ token }: Props) {
             bet_1x2: p.prediction_1x2 ?? "",
             bet_1x2_manual: !!p.prediction_1x2,
           };
-          if (p.home_goals !== null && p.away_goals !== null && p.prediction_1x2) {
-            filledIds.add(p.match_id);
-          }
         });
-        setPreFilledIds(filledIds);
 
         const init: Record<string, PredictionState> = {};
         matchData.forEach((m: Match) => {
@@ -115,6 +125,17 @@ export default function PredictionsClient({ token }: Props) {
     }
     init();
   }, [token, router]);
+
+  const isMatchdayLocked = useCallback((matchday: number | null | undefined): boolean => {
+    if (!matchday) return true;
+    const info = lockInfo.find((l) => l.matchday === matchday);
+    return info ? info.is_locked : true;
+  }, [lockInfo]);
+
+  const isMatchLocked = useCallback((match: Match): boolean => {
+    if (match.status === "finished" || match.status === "live") return true;
+    return isMatchdayLocked(match.matchday);
+  }, [isMatchdayLocked]);
 
   const updatePrediction = useCallback(
     (matchId: string, field: "home_goals" | "away_goals", value: string) => {
@@ -149,20 +170,17 @@ export default function PredictionsClient({ token }: Props) {
   const groupMatches = (group: string) =>
     matches.filter((m) => m.phase === "group" && m.group === group);
 
-  const isMatchLocked = (match: Match) =>
-    submitted || match.status === "finished" || match.status === "live" || preFilledIds.has(match.id);
+  // All open (editable) matches
+  const openMatches = matches.filter((m) => m.phase === "group" && !isMatchLocked(m));
 
-  const openGroupMatches = matches.filter(
-    (m) => m.phase === "group" && !isMatchLocked(m)
-  );
-
-  const completionCount = openGroupMatches.filter((m) => {
+  const completionCount = openMatches.filter((m) => {
     const p = predictions[m.id];
     return p?.home_goals !== "" && p?.away_goals !== "" && p?.bet_1x2 !== "";
   }).length;
 
   const globalFilled = globalPred.top_scorer.trim() !== "" && globalPred.tournament_winner !== "";
-  const canSubmit = completionCount === openGroupMatches.length && openGroupMatches.length > 0 && globalFilled;
+  const canSave = completionCount === openMatches.length && openMatches.length > 0 && globalFilled;
+  const hasOpenMatches = openMatches.length > 0;
 
   const groupCompletion = (group: string) => {
     const open = groupMatches(group).filter((m) => !isMatchLocked(m));
@@ -173,11 +191,20 @@ export default function PredictionsClient({ token }: Props) {
     return { filled, total: open.length };
   };
 
-  async function handleSubmit() {
+  // Get lock info for a matchday to show in header
+  const getMatchdayLockLabel = (matchday: number) => {
+    const info = lockInfo.find((l) => l.matchday === matchday);
+    if (!info) return null;
+    if (info.is_locked) return "Encerrada";
+    return `Fecha ${formatLockTime(info.lock_time)}`;
+  };
+
+  async function handleSave() {
     setSubmitting(true);
     setError("");
+    setSaveSuccess(false);
 
-    const rows = openGroupMatches.map((m) => {
+    const rows = openMatches.map((m) => {
       const p = predictions[m.id];
       const h = parseInt(p?.home_goals ?? "0");
       const a = parseInt(p?.away_goals ?? "0");
@@ -201,8 +228,9 @@ export default function PredictionsClient({ token }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Erro ao submeter."); return; }
-      setSubmitted(true);
+      if (!res.ok) { setError(data.error ?? "Erro ao guardar."); return; }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch {
       setError("Erro de ligação. Verifica a tua internet.");
     } finally {
@@ -218,6 +246,11 @@ export default function PredictionsClient({ token }: Props) {
     );
   }
 
+  // Derive matchday for active group's matches (to show lock info)
+  const activeGroupMatchdays = [...new Set(
+    groupMatches(activeGroup).map((m) => m.matchday).filter(Boolean)
+  )] as number[];
+
   return (
     <div className="min-h-screen pb-32">
       {/* Sticky top bar */}
@@ -232,19 +265,28 @@ export default function PredictionsClient({ token }: Props) {
               <p className="text-xs text-wc-white/30">Previsões · Fase de Grupos</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-wc-white/30">Em falta</p>
-            <p className="font-display text-xl text-wc-gold tabular-nums">
-              {openGroupMatches.length - completionCount}/{openGroupMatches.length}
-            </p>
-          </div>
+          {hasOpenMatches ? (
+            <div className="text-right">
+              <p className="text-xs text-wc-white/30">Em falta</p>
+              <p className="font-display text-xl text-wc-gold tabular-nums">
+                {openMatches.length - completionCount}/{openMatches.length}
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-wc-white/30">
+              <Lock size={12} />
+              Todas encerradas
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}
-        <div className="h-0.5" style={{ background: "rgba(35,82,240,0.2)" }}>
-          <div className="h-full transition-all duration-300"
-            style={{ background: "linear-gradient(90deg, #2352f0, #f5c300)", width: openGroupMatches.length > 0 ? `${(completionCount / openGroupMatches.length) * 100}%` : "0%" }} />
-        </div>
+        {hasOpenMatches && (
+          <div className="h-0.5" style={{ background: "rgba(35,82,240,0.2)" }}>
+            <div className="h-full transition-all duration-300"
+              style={{ background: "linear-gradient(90deg, #2352f0, #f5c300)", width: `${(completionCount / openMatches.length) * 100}%` }} />
+          </div>
+        )}
 
         {/* Group tabs */}
         <div className="flex overflow-x-auto scrollbar-none px-4 gap-1 py-2">
@@ -279,11 +321,32 @@ export default function PredictionsClient({ token }: Props) {
 
       {/* Matches */}
       <div className="max-w-2xl mx-auto px-4 pt-4">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs font-bold tracking-widest uppercase text-wc-white/25">
-            {PHASE_LABELS.group}
-          </span>
-          <span className="font-display text-wc-gold text-lg tracking-wider">GRUPO {activeGroup}</span>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-widest uppercase text-wc-white/25">
+              {PHASE_LABELS.group}
+            </span>
+            <span className="font-display text-wc-gold text-lg tracking-wider">GRUPO {activeGroup}</span>
+          </div>
+          {/* Jornada lock status for this group */}
+          {activeGroupMatchdays.length > 0 && (
+            <div className="flex gap-2">
+              {activeGroupMatchdays.map((md) => {
+                const label = getMatchdayLockLabel(md);
+                const locked = isMatchdayLocked(md);
+                return label ? (
+                  <span key={md} className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                    style={locked
+                      ? { background: "rgba(255,255,255,0.06)", color: "#555" }
+                      : { background: "rgba(245,195,0,0.1)", color: "#e8c94a", border: "1px solid rgba(245,195,0,0.2)" }
+                    }>
+                    {locked ? <Lock size={9} /> : null}
+                    J{md} · {label}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -326,11 +389,7 @@ export default function PredictionsClient({ token }: Props) {
         </div>
         <div
           className="rounded-2xl border p-5 space-y-5"
-          style={
-            submitted
-              ? { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }
-              : { background: "rgba(35,82,240,0.06)", borderColor: "rgba(35,82,240,0.2)" }
-          }
+          style={{ background: "rgba(35,82,240,0.06)", borderColor: "rgba(35,82,240,0.2)" }}
         >
           {/* Vencedor */}
           <div className="space-y-2">
@@ -340,26 +399,17 @@ export default function PredictionsClient({ token }: Props) {
             </label>
             <div className="relative">
               <select
-                disabled={submitted}
                 value={globalPred.tournament_winner}
                 onChange={(e) => setGlobalPred((g) => ({ ...g, tournament_winner: e.target.value }))}
                 className="w-full appearance-none rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none pr-10"
-                style={
-                  submitted
-                    ? { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", cursor: "not-allowed" }
-                    : { background: "rgba(35,82,240,0.15)", borderColor: "rgba(35,82,240,0.3)", color: globalPred.tournament_winner ? "#fff" : "rgba(255,255,255,0.3)" }
-                }
+                style={{ background: "rgba(35,82,240,0.15)", borderColor: "rgba(35,82,240,0.3)", color: globalPred.tournament_winner ? "#fff" : "rgba(255,255,255,0.3)" }}
               >
                 <option value="" disabled>Escolhe uma seleção…</option>
                 {WC2026_TEAMS.map((t) => (
                   <option key={t} value={t} style={{ background: "#0d1b3e", color: "#fff" }}>{t}</option>
                 ))}
               </select>
-              <ChevronRight
-                size={14}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none"
-                style={{ color: submitted ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.3)" }}
-              />
+              <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" style={{ color: "rgba(255,255,255,0.3)" }} />
             </div>
           </div>
 
@@ -371,16 +421,11 @@ export default function PredictionsClient({ token }: Props) {
             </label>
             <input
               type="text"
-              disabled={submitted}
               value={globalPred.top_scorer}
               onChange={(e) => setGlobalPred((g) => ({ ...g, top_scorer: e.target.value }))}
               placeholder="Nome do jogador…"
               className="w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none"
-              style={
-                submitted
-                  ? { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", cursor: "not-allowed" }
-                  : { background: "rgba(35,82,240,0.15)", borderColor: globalPred.top_scorer ? "rgba(35,82,240,0.5)" : "rgba(35,82,240,0.3)", color: "#fff" }
-              }
+              style={{ background: "rgba(35,82,240,0.15)", borderColor: globalPred.top_scorer ? "rgba(35,82,240,0.5)" : "rgba(35,82,240,0.3)", color: "#fff" }}
             />
           </div>
         </div>
@@ -389,15 +434,14 @@ export default function PredictionsClient({ token }: Props) {
       {/* Sticky bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 backdrop-blur-md" style={{ background: "rgba(6,13,30,0.97)" }}>
         <div className="max-w-2xl mx-auto px-4 py-4">
-          {submitted ? (
+          {!hasOpenMatches ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-wc-green shrink-0" />
-                <span className="text-sm font-bold text-wc-white">Previsões submetidas</span>
-                <span className="text-xs text-wc-white/30">· modo leitura</span>
+                <Lock size={16} className="text-wc-white/30 shrink-0" />
+                <span className="text-sm text-wc-white/40">Jornadas encerradas</span>
               </div>
               <Link href="/"
-                className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark transition-all"
+                className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark"
                 style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
                 Classificação
               </Link>
@@ -411,23 +455,25 @@ export default function PredictionsClient({ token }: Props) {
                 </div>
               )}
               <button
-                onClick={handleSubmit}
-                disabled={!canSubmit || submitting}
+                onClick={handleSave}
+                disabled={!canSave || submitting}
                 className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
                 style={
-                  canSubmit && !submitting
+                  canSave && !submitting
                     ? { background: "linear-gradient(135deg, #f5c300, #ffd93d)" }
                     : { background: "rgba(255,255,255,0.08)" }
                 }
               >
                 {submitting ? (
                   <><Loader2 size={20} className="animate-spin text-wc-dark" /> A guardar...</>
-                ) : canSubmit ? (
-                  <><Trophy size={20} /> Submeter Previsões</>
+                ) : saveSuccess ? (
+                  <><CheckCircle2 size={20} className="text-wc-green" /> <span className="text-wc-white">Guardado!</span></>
+                ) : canSave ? (
+                  <><Trophy size={20} /> Guardar Palpites</>
                 ) : (
                   <span className="text-wc-white/30">
-                    {openGroupMatches.length - completionCount > 0
-                      ? `Preenche todos os jogos (${openGroupMatches.length - completionCount} em falta)`
+                    {openMatches.length - completionCount > 0
+                      ? `Preenche todos os jogos (${openMatches.length - completionCount} em falta)`
                       : "Preenche o vencedor e melhor marcador"}
                   </span>
                 )}

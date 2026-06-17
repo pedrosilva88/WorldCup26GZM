@@ -77,7 +77,9 @@ on conflict (key) do nothing;
 -- ============================================================
 -- LEADERBOARD VIEW
 -- ============================================================
-create or replace view public.leaderboard as
+create or replace view public.leaderboard
+with (security_invoker = true)
+as
 select
   u.id as user_id,
   u.name as user_name,
