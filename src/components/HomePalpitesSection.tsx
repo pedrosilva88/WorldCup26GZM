@@ -20,6 +20,7 @@ interface DayMatch {
   match_date: string; status: string;
   home_score: number | null; away_score: number | null;
   group: string; match_order: number;
+  matchday?: number | null;
   predictions: UserPred[];
 }
 
@@ -135,9 +136,16 @@ function GameInfoCard({ match }: { match: DayMatch }) {
       }}
     >
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-        <p style={{ fontSize: 10, color: "#555", lineHeight: 1 }}>
-          {matchTimeStr(match.match_date)}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {match.matchday && (
+            <span style={{ fontSize: 9, fontWeight: 800, color: "#444", letterSpacing: "0.04em" }}>
+              J{match.matchday}
+            </span>
+          )}
+          <p style={{ fontSize: 10, color: "#555", lineHeight: 1 }}>
+            {matchTimeStr(match.match_date)}
+          </p>
+        </div>
         {([
           { team: match.home_team, score: match.home_score },
           { team: match.away_team, score: match.away_score },

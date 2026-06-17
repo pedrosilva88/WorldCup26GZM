@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const { data: allMatches } = await supabase
     .from("matches")
-    .select("id, match_date, home_team, away_team, home_score, away_score, status, group, match_order")
+    .select("id, match_date, home_team, away_team, home_score, away_score, status, group, match_order, matchday")
     .eq("phase", "group")
     .not("match_date", "is", null)
     .order("match_date");

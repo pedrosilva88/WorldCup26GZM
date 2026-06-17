@@ -68,6 +68,7 @@ export default function PredictionsClient({ token }: Props) {
   const [loading, setLoading] = useState(true);
   const [globalPred, setGlobalPred] = useState<GlobalState>({ top_scorer: "", tournament_winner: "" });
   const [lockInfo, setLockInfo] = useState<MatchdayLock[]>([]);
+  const [globalLocked, setGlobalLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -102,6 +103,9 @@ export default function PredictionsClient({ token }: Props) {
             top_scorer: predData.global.top_scorer ?? "",
             tournament_winner: predData.global.tournament_winner ?? "",
           });
+          if (predData.global.top_scorer && predData.global.tournament_winner) {
+            setGlobalLocked(true);
+          }
         }
 
         const predMap: Record<string, PredictionState> = {};
@@ -178,7 +182,7 @@ export default function PredictionsClient({ token }: Props) {
     return p?.home_goals !== "" && p?.away_goals !== "" && p?.bet_1x2 !== "";
   }).length;
 
-  const globalFilled = globalPred.top_scorer.trim() !== "" && globalPred.tournament_winner !== "";
+  const globalFilled = globalLocked || (globalPred.top_scorer.trim() !== "" && globalPred.tournament_winner !== "");
   const canSave = completionCount === openMatches.length && openMatches.length > 0 && globalFilled;
   const hasOpenMatches = openMatches.length > 0;
 
@@ -391,26 +395,40 @@ export default function PredictionsClient({ token }: Props) {
           className="rounded-2xl border p-5 space-y-5"
           style={{ background: "rgba(35,82,240,0.06)", borderColor: "rgba(35,82,240,0.2)" }}
         >
+          {globalLocked && (
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase" style={{ color: "#555" }}>
+              <Lock size={10} />
+              Bloqueado — não pode ser alterado
+            </div>
+          )}
+
           {/* Vencedor */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-wc-white/40">
               <Trophy size={12} className="text-wc-gold" />
               Vencedor do Torneio
             </label>
-            <div className="relative">
-              <select
-                value={globalPred.tournament_winner}
-                onChange={(e) => setGlobalPred((g) => ({ ...g, tournament_winner: e.target.value }))}
-                className="w-full appearance-none rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none pr-10"
-                style={{ background: "rgba(35,82,240,0.15)", borderColor: "rgba(35,82,240,0.3)", color: globalPred.tournament_winner ? "#fff" : "rgba(255,255,255,0.3)" }}
-              >
-                <option value="" disabled>Escolhe uma seleção…</option>
-                {WC2026_TEAMS.map((t) => (
-                  <option key={t} value={t} style={{ background: "#0d1b3e", color: "#fff" }}>{t}</option>
-                ))}
-              </select>
-              <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" style={{ color: "rgba(255,255,255,0.3)" }} />
-            </div>
+            {globalLocked ? (
+              <div className="rounded-xl border px-4 py-3 text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)", color: "#fff" }}>
+                {globalPred.tournament_winner}
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={globalPred.tournament_winner}
+                  onChange={(e) => setGlobalPred((g) => ({ ...g, tournament_winner: e.target.value }))}
+                  className="w-full appearance-none rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none pr-10"
+                  style={{ background: "rgba(35,82,240,0.15)", borderColor: "rgba(35,82,240,0.3)", color: globalPred.tournament_winner ? "#fff" : "rgba(255,255,255,0.3)" }}
+                >
+                  <option value="" disabled>Escolhe uma seleção…</option>
+                  {WC2026_TEAMS.map((t) => (
+                    <option key={t} value={t} style={{ background: "#0d1b3e", color: "#fff" }}>{t}</option>
+                  ))}
+                </select>
+                <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" style={{ color: "rgba(255,255,255,0.3)" }} />
+              </div>
+            )}
           </div>
 
           {/* Melhor marcador */}
@@ -419,14 +437,21 @@ export default function PredictionsClient({ token }: Props) {
               <Trophy size={12} className="text-wc-electric" />
               Melhor Marcador
             </label>
-            <input
-              type="text"
-              value={globalPred.top_scorer}
-              onChange={(e) => setGlobalPred((g) => ({ ...g, top_scorer: e.target.value }))}
-              placeholder="Nome do jogador…"
-              className="w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none"
-              style={{ background: "rgba(35,82,240,0.15)", borderColor: globalPred.top_scorer ? "rgba(35,82,240,0.5)" : "rgba(35,82,240,0.3)", color: "#fff" }}
-            />
+            {globalLocked ? (
+              <div className="rounded-xl border px-4 py-3 text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)", color: "#fff" }}>
+                {globalPred.top_scorer}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={globalPred.top_scorer}
+                onChange={(e) => setGlobalPred((g) => ({ ...g, top_scorer: e.target.value }))}
+                placeholder="Nome do jogador…"
+                className="w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none"
+                style={{ background: "rgba(35,82,240,0.15)", borderColor: globalPred.top_scorer ? "rgba(35,82,240,0.5)" : "rgba(35,82,240,0.3)", color: "#fff" }}
+              />
+            )}
           </div>
         </div>
       </div>

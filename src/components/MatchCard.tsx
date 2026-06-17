@@ -95,7 +95,11 @@ export default function MatchCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25">
-          {match.group ? `Grupo ${match.group}` : "Eliminatória"}
+          {match.phase === "group"
+            ? match.matchday
+              ? `J${match.matchday} · Grupo ${match.group}`
+              : `Grupo ${match.group}`
+            : ({ round_of_32: "32", round_of_16: "16", quarter_final: "QF", semi_final: "SF", third_place: "3/4", final: "Final" } as Record<string, string>)[match.phase] ?? "Eliminatória"}
         </span>
         <div className="flex items-center gap-1.5">
           {result && !disabled && (

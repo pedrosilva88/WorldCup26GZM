@@ -50,20 +50,14 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
 
   // Check if matches for this phase already exist
-  const { count } = await supabase
+  const { data: existingMatches } = await supabase
     .from("matches")
-    .select("*", { count: "exact", head: true })
+    .select("id, api_match_id, match_order")
     .eq("phase", phase);
 
-  if ((count ?? 0) > 0) {
-    return NextResponse.json(
-      { error: "Esta fase já foi gerada.", count },
-      { status: 409 }
-    );
-  }
+  const alreadyExists = (existingMatches ?? []).length > 0;
 
   const apiKey = process.env.FOOTBALL_API_KEY;
-  let rows: object[] = [];
   let source = "placeholder";
 
   // Try API first
@@ -75,93 +69,82 @@ export async function POST(req: NextRequest) {
         source = "api";
         const orderStart = PHASE_ORDER_START[phase];
 
-        rows = apiMatches.map((m, idx) => ({
+        if (alreadyExists) {
+          // Refresh mode: update existing rows by api_match_id or match_order
+          let updated = 0;
+          for (const [idx, m] of apiMatches.entries()) {
+            const matchOrder = orderStart + idx;
+            const existing = existingMatches!.find(
+              (e) => e.api_match_id === m.id || e.match_order === matchOrder
+            );
+            if (!existing) continue;
+
+            await supabase
+              .from("matches")
+              .update({
+                home_team: translateTeam(m.homeTeam.name),
+                away_team: translateTeam(m.awayTeam.name),
+                match_date: m.utcDate ?? null,
+                api_match_id: m.id,
+              })
+              .eq("id", existing.id);
+            updated++;
+          }
+          return NextResponse.json({ success: true, phase, source, updated, mode: "refresh" });
+        }
+
+        // Insert mode
+        const rows = apiMatches.map((m, idx) => ({
           phase,
           home_team: translateTeam(m.homeTeam.name),
           away_team: translateTeam(m.awayTeam.name),
           match_date: m.utcDate ?? null,
-          home_score:
-            m.score?.fullTime?.home !== null && m.status === "FINISHED"
-              ? m.score.fullTime.home
-              : null,
-          away_score:
-            m.score?.fullTime?.away !== null && m.status === "FINISHED"
-              ? m.score.fullTime.away
-              : null,
-          status:
-            m.status === "FINISHED"
-              ? "finished"
-              : m.status === "IN_PLAY" || m.status === "PAUSED"
-              ? "live"
-              : "scheduled",
+          home_score: m.score?.fullTime?.home !== null && m.status === "FINISHED" ? m.score.fullTime.home : null,
+          away_score: m.score?.fullTime?.away !== null && m.status === "FINISHED" ? m.score.fullTime.away : null,
+          status: m.status === "FINISHED" ? "finished" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "scheduled",
           api_match_id: m.id,
           match_order: orderStart + idx,
         }));
+
+        const { error, data } = await supabase.from("matches").insert(rows).select();
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ success: true, phase, source, inserted: data?.length ?? rows.length, mode: "create" });
       }
     } catch (e) {
       console.error("API error, falling back to placeholders:", e);
     }
   }
 
-  // Fallback: placeholders
-  if (rows.length === 0) {
-    if (phase === "round_of_32") {
-      rows = WC2026_R32_BRACKET.map((slot) => ({
-        phase,
-        home_team: slot.home_placeholder,
-        away_team: slot.away_placeholder,
-        match_date: null,
-        home_score: null,
-        away_score: null,
-        status: "scheduled",
-        api_match_id: null,
-        match_order: slot.match_order,
-      }));
-    } else {
-      // Generic placeholders for later rounds
-      const count = PHASE_MATCH_COUNT[phase];
-      const orderStart = PHASE_ORDER_START[phase];
-      const phaseName =
-        phase === "round_of_16"
-          ? "Oitavos"
-          : phase === "quarter_final"
-          ? "Quartos"
-          : phase === "semi_final"
-          ? "Meias"
-          : phase === "third_place"
-          ? "3º/4º Lugar"
-          : "Final";
-
-      rows = Array.from({ length: count }, (_, i) => ({
-        phase,
-        home_team: `Jogo ${i + 1} ${phaseName} A`,
-        away_team: `Jogo ${i + 1} ${phaseName} B`,
-        match_date: null,
-        home_score: null,
-        away_score: null,
-        status: "scheduled",
-        api_match_id: null,
-        match_order: orderStart + i,
-      }));
-    }
-    source = "placeholder";
+  // Fallback: placeholders (only if phase not yet generated)
+  if (alreadyExists) {
+    return NextResponse.json({ success: true, phase, source: "no-change", mode: "refresh", updated: 0 });
   }
 
-  const { error, data } = await supabase
-    .from("matches")
-    .insert(rows)
-    .select();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  let rows: object[] = [];
+  if (phase === "round_of_32") {
+    rows = WC2026_R32_BRACKET.map((slot) => ({
+      phase,
+      home_team: slot.home_placeholder,
+      away_team: slot.away_placeholder,
+      match_date: null, home_score: null, away_score: null,
+      status: "scheduled", api_match_id: null, match_order: slot.match_order,
+    }));
+  } else {
+    const count = PHASE_MATCH_COUNT[phase];
+    const orderStart = PHASE_ORDER_START[phase];
+    const phaseName = phase === "round_of_16" ? "Oitavos" : phase === "quarter_final" ? "Quartos"
+      : phase === "semi_final" ? "Meias" : phase === "third_place" ? "3º/4º Lugar" : "Final";
+    rows = Array.from({ length: count }, (_, i) => ({
+      phase, home_team: `Jogo ${i + 1} ${phaseName} A`, away_team: `Jogo ${i + 1} ${phaseName} B`,
+      match_date: null, home_score: null, away_score: null,
+      status: "scheduled", api_match_id: null, match_order: orderStart + i,
+    }));
   }
+  source = "placeholder";
 
-  return NextResponse.json({
-    success: true,
-    phase,
-    source,
-    inserted: data?.length ?? rows.length,
-  });
+  const { error, data } = await supabase.from("matches").insert(rows).select();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true, phase, source, inserted: data?.length ?? rows.length, mode: "create" });
 }
 
 // Update team names in existing knockout match slots
