@@ -22,6 +22,7 @@ export interface ApiMatch {
   awayTeam: { name: string; shortName: string };
   score: {
     fullTime: { home: number | null; away: number | null };
+    extraTime: { home: number | null; away: number | null } | null;
   };
 }
 
