@@ -150,9 +150,10 @@ export default function HeroSection() {
               height: R * 2,
               borderRadius: "50%",
               overflow: "hidden",
-              opacity: 0.09,
+              opacity: 0.12,
               willChange: "transform",
               userSelect: "none",
+              background: "#0c0f13",
             }}
           >
             <img
@@ -161,8 +162,8 @@ export default function HeroSection() {
               draggable={false}
               style={{
                 width: "100%",
-                height: "160%",
-                objectFit: "cover",
+                height: "100%",
+                objectFit: "contain",
                 objectPosition: "50% 0%",
               }}
             />

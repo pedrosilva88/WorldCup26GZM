@@ -51,7 +51,7 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
   const score = hasScore ? `${pred.home_goals}–${pred.away_goals}` : "–";
   const pts = pred.points_earned ?? 0;
   const bet = pred.prediction_1x2;
-  const firstName = pred.user_name.split(" ")[0];
+  const firstName = pred.user_name;
   const showBadge = hasScore && state !== "pending";
 
   const styles = {
@@ -71,7 +71,7 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
         opacity: state === "pending" ? 0.5 : 1,
       }}
     >
-      <p style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase", color: "#888", maxWidth: 62, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+      <p style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase", color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
         {firstName}
       </p>
 
