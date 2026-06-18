@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="ball" cx="38%" cy="32%" r="60%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#cfd4dc"/>
+      <stop offset="100%" stop-color="#aab0ba"/>
+    </radialGradient>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1b2230"/>
+      <stop offset="100%" stop-color="#10151d"/>
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <circle cx="16" cy="16" r="15.5" fill="url(#bg)"/>
+  <!-- Gold border -->
+  <circle cx="16" cy="16" r="14.5" fill="none" stroke="#e9b13a" stroke-width="1.5"/>
+  <!-- Ball -->
+  <circle cx="16" cy="15.5" r="7.5" fill="url(#ball)"/>
+  <!-- Pentagon patch -->
+  <polygon points="16,10 20,13 18.5,18 13.5,18 12,13" fill="#13171d"/>
+</svg>
