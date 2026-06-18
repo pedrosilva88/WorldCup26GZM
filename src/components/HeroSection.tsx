@@ -14,7 +14,7 @@ const AVATAR_SRCS = [
 ];
 
 const R = 38; // radius px
-const SPEED = 0.16; // px/ms base
+const SPEED = 0.03; // px/ms base — slow, space-like drift
 
 type Ball = { x: number; y: number; vx: number; vy: number; el: HTMLDivElement };
 
@@ -163,7 +163,7 @@ export default function HeroSection() {
                 width: "100%",
                 height: "160%",
                 objectFit: "cover",
-                objectPosition: "50% 8%",
+                objectPosition: "50% 0%",
               }}
             />
           </div>
