@@ -55,7 +55,7 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
   const showBadge = hasScore && state !== "pending";
 
   const styles = {
-    exact:   { bg: "#100d00", border: "#2e2200", scoreColor: "#f5c300", ptsBg: "#3a2e00", ptsTxt: "#f5c300", betTxt: "#e8c94a", betBg: "#2a2200" },
+    exact:   { bg: "#100e00", border: "#2e2600", scoreColor: "#e9b13a", ptsBg: "#342b00", ptsTxt: "#e9b13a", betTxt: "#e0a830", betBg: "#2a2200" },
     partial: { bg: "#0d1608", border: "#1e3010", scoreColor: "#5ed46a", ptsBg: "#1a3a1a", ptsTxt: "#5ed46a", betTxt: "#4caf74", betBg: "#1a3a1a" },
     wrong:   { bg: "#0e0e0e", border: "#1a1a1a", scoreColor: "#2e2e2e", ptsBg: "#1c1c1c", ptsTxt: "#444",    betTxt: "#aaa",    betBg: "#333" },
     pending: { bg: "#0e0e0e", border: "#1e1e1e", scoreColor: "#555",    ptsBg: "transparent", ptsTxt: "#2a2a2a", betTxt: "#bbb", betBg: "#333" },
@@ -243,7 +243,7 @@ export default function HomePalpitesSection() {
                 className="px-3 py-1 rounded-full text-xs font-medium border transition-all"
                 style={
                   selectedDate === d.date
-                    ? { background: "#f5c300", color: "#060d1e", borderColor: "#f5c300", fontWeight: 700 }
+                    ? { background: "#e9b13a", color: "#0c0f13", borderColor: "#e9b13a", fontWeight: 700 }
                     : { background: "transparent", color: "#555", borderColor: "#1e1e1e" }
                 }
               >

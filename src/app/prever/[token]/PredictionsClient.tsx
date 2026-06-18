@@ -229,7 +229,7 @@ export default function PredictionsClient({ token }: Props) {
   return (
     <div className="min-h-screen pb-32">
       {/* Sticky top bar */}
-      <div className="sticky top-0 z-50 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(6,13,30,0.96)" }}>
+      <div className="sticky top-0 z-50 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.96)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-wc-white/40 hover:text-wc-white transition-colors p-1">
@@ -257,9 +257,9 @@ export default function PredictionsClient({ token }: Props) {
 
         {/* Progress bar */}
         {hasOpenMatches && (
-          <div className="h-0.5" style={{ background: "rgba(35,82,240,0.2)" }}>
+          <div className="h-0.5" style={{ background: "rgba(233,177,58,0.15)" }}>
             <div className="h-full transition-all duration-300"
-              style={{ background: "linear-gradient(90deg, #2352f0, #f5c300)", width: `${(completionCount / openMatches.length) * 100}%` }} />
+              style={{ background: "linear-gradient(90deg, #1fa45f, #e9b13a)", width: `${(completionCount / openMatches.length) * 100}%` }} />
           </div>
         )}
 
@@ -280,7 +280,7 @@ export default function PredictionsClient({ token }: Props) {
                 )}
                 style={
                   activeGroup === g
-                    ? { background: "linear-gradient(135deg, #f5c300, #ffd93d)" }
+                    ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }
                     : allDone && total > 0
                     ? { background: "rgba(0,166,82,0.1)" }
                     : { background: "rgba(255,255,255,0.05)" }
@@ -409,7 +409,7 @@ export default function PredictionsClient({ token }: Props) {
       </div>
 
       {/* Sticky bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 backdrop-blur-md" style={{ background: "rgba(6,13,30,0.97)" }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.97)" }}>
         <div className="max-w-2xl mx-auto px-4 py-4">
           {!hasOpenMatches ? (
             <div className="flex items-center justify-between">
@@ -419,7 +419,7 @@ export default function PredictionsClient({ token }: Props) {
               </div>
               <Link href="/"
                 className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark"
-                style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
+                style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
                 Classificação
               </Link>
             </div>
@@ -437,7 +437,7 @@ export default function PredictionsClient({ token }: Props) {
                 className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
                 style={
                   canSave && !submitting
-                    ? { background: "linear-gradient(135deg, #f5c300, #ffd93d)" }
+                    ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }
                     : { background: "rgba(255,255,255,0.08)" }
                 }
               >

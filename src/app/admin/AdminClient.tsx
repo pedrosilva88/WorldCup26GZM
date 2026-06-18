@@ -338,7 +338,7 @@ export default function AdminClient() {
   // ── DASHBOARD ──────────────────────────────────────────────
   return (
     <div className="min-h-screen pb-8">
-      <div className="sticky top-0 z-50 border-b border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(6,14,26,0.95)" }}>
+      <div className="sticky top-0 z-50 border-b border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.95)" }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-1 overflow-x-auto">
             {([["results", "Resultados"], ["knockout", "Eliminatórias"], ["users", "Utilizadores"], ["settings", "Definições"]] as [AdminView, string][]).map(([v, label]) => (

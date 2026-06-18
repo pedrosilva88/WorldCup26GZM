@@ -92,7 +92,7 @@ function UserChip({ pred, match }: { pred: UserPred; match: DayMatch }) {
   const firstName = pred.user_name.split(" ")[0];
 
   const styles = {
-    exact:   { bg: "#100d00", border: "#2e2200", scoreColor: "#f5c300", ptsBg: "#3a2e00", ptsTxt: "#f5c300", betTxt: "#e8c94a", betBg: "#2a2200" },
+    exact:   { bg: "#100e00", border: "#2e2600", scoreColor: "#e9b13a", ptsBg: "#342b00", ptsTxt: "#e9b13a", betTxt: "#e0a830", betBg: "#2a2200" },
     partial: { bg: "#0d1608", border: "#1e3010", scoreColor: "#5ed46a", ptsBg: "#1a3a1a", ptsTxt: "#5ed46a", betTxt: "#4caf74", betBg: "#1a3a1a" },
     wrong:   { bg: "#0e0e0e", border: "#1a1a1a", scoreColor: "#2e2e2e", ptsBg: "#1c1c1c", ptsTxt: "#444",    betTxt: "#aaa",    betBg: "#333" },
     pending: { bg: "#0e0e0e", border: "#1e1e1e", scoreColor: "#555",    ptsBg: "transparent", ptsTxt: "#2a2a2a", betTxt: "#bbb", betBg: "#333" },
@@ -347,7 +347,7 @@ export default function PalpitesClient() {
   return (
     <div className="min-h-screen pb-16">
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-50 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(6,13,30,0.96)" }}>
+      <div className="sticky top-0 z-50 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.96)" }}>
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-wc-white/40 hover:text-wc-white transition-colors p-1">
@@ -402,11 +402,11 @@ export default function PalpitesClient() {
                   className="flex-shrink-0 px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap border transition-all"
                   style={
                     isSelected
-                      ? { background: "#f5c300", color: "#060d1e", borderColor: "#f5c300", fontWeight: 700 }
+                      ? { background: "#e9b13a", color: "#0c0f13", borderColor: "#e9b13a", fontWeight: 700 }
                       : isPast
                       ? { background: "transparent", color: "#666", borderColor: "#222" }
                       : isToday
-                      ? { background: "rgba(245,195,0,0.08)", color: "#e8c94a", borderColor: "rgba(245,195,0,0.25)" }
+                      ? { background: "rgba(233,177,58,0.08)", color: "#e9b13a", borderColor: "rgba(233,177,58,0.25)" }
                       : { background: "transparent", color: "#444", borderColor: "#1a1a1a" }
                   }
                 >
@@ -506,7 +506,7 @@ export default function PalpitesClient() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-wc-white/40">
-                        <Star size={12} className="text-wc-electric" /> Melhor Marcador
+                        <Star size={12} className="text-wc-gold" /> Melhor Marcador
                       </div>
                       <span className="text-sm font-bold text-wc-white">{globalPred.top_scorer || "—"}</span>
                     </div>

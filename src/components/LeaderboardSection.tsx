@@ -30,7 +30,7 @@ export default function LeaderboardSection() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {/* Colored accent bar */}
-          <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(180deg, #f5c300, #e63312)" }} />
+          <div className="w-1 h-6 rounded-full" style={{ background: "linear-gradient(180deg, #e9b13a, #dd4a3b)" }} />
           <h2 className="font-display text-2xl text-wc-white tracking-wider">CLASSIFICAÇÃO</h2>
         </div>
         <button

@@ -181,7 +181,7 @@ export default function KnockoutClient({ token }: Props) {
 
   return (
     <div className="min-h-screen pb-32">
-      <div className="sticky top-0 z-50 border-b border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(6,14,26,0.95)" }}>
+      <div className="sticky top-0 z-50 border-b border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.95)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-wc-white/40 hover:text-wc-white p-1"><ArrowLeft size={18} /></Link>
@@ -235,7 +235,7 @@ export default function KnockoutClient({ token }: Props) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(6,14,26,0.97)" }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-wc-blue-mid/40 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.97)" }}>
         <div className="max-w-2xl mx-auto px-4 py-4">
           {error && (
             <div className="flex items-center gap-2 text-sm text-wc-red mb-3 bg-wc-red/10 border border-wc-red/30 rounded-xl px-3 py-2">

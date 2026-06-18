@@ -11,11 +11,11 @@ interface LeaderboardProps {
 const RANK_CONFIG = [
   {
     bg: "border-wc-gold/40",
-    cardStyle: { background: "rgba(245,195,0,0.08)" },
-    numStyle: { color: "#f5c300" },
+    cardStyle: { background: "rgba(233,177,58,0.08)" },
+    numStyle: { color: "#e9b13a" },
     badge: (
       <div className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #f5c300, #ffd93d)" }}>
+        style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
         <Trophy size={14} className="text-wc-dark" />
       </div>
     ),

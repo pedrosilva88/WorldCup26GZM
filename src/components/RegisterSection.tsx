@@ -134,7 +134,7 @@ export default function RegisterSection() {
             >
               <option value="" disabled>Escolhe uma seleção...</option>
               {ALL_TEAMS.map((team) => (
-                <option key={team} value={team} style={{ background: "#0a2240" }}>
+                <option key={team} value={team} style={{ background: "#141923" }}>
                   {team}
                 </option>
               ))}

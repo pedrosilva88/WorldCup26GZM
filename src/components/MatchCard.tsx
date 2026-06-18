@@ -22,7 +22,7 @@ function inferResult(home: string, away: string): { label: string; color: string
   const a = parseInt(away);
   if (isNaN(h) || isNaN(a) || home === "" || away === "") return null;
   if (h > a) return { label: "Vitória 1", color: "text-wc-green" };
-  if (h < a) return { label: "Vitória 2", color: "text-wc-electric" };
+  if (h < a) return { label: "Vitória 2", color: "text-wc-white/60" };
   return { label: "Empate", color: "text-wc-gold" };
 }
 
@@ -84,12 +84,12 @@ export default function MatchCard({
         "rounded-2xl border p-4 transition-all",
         disabled
           ? "border-white/6 opacity-70"
-          : "border-white/10 hover:border-wc-electric/30"
+          : "border-white/10 hover:border-wc-gold/25"
       )}
       style={
         disabled
           ? { background: "rgba(255,255,255,0.02)" }
-          : { background: "rgba(35,82,240,0.06)" }
+          : { background: "rgba(20,25,35,0.5)" }
       }
     >
       {/* Header */}
@@ -152,17 +152,17 @@ export default function MatchCard({
                       ? hasValue
                         ? "border-white/10 text-wc-white/40 cursor-not-allowed"
                         : "border-white/5 text-wc-white/15 cursor-not-allowed"
-                      : "border-wc-electric/30 text-wc-white focus:border-wc-gold focus:scale-105 cursor-pointer"
+                      : "border-wc-gold/25 text-wc-white focus:border-wc-gold focus:scale-105 cursor-pointer"
                   )}
                   style={
                     disabled
                       ? { background: "rgba(255,255,255,0.04)", textAlignLast: "center" }
-                      : { background: "rgba(35,82,240,0.15)", textAlignLast: "center" }
+                      : { background: "rgba(233,177,58,0.08)", textAlignLast: "center" }
                   }
                 >
-                  <option value="" style={{ background: "#0a1628", color: "rgba(255,255,255,0.3)" }}>–</option>
+                  <option value="" style={{ background: "#141923", color: "rgba(255,255,255,0.3)" }}>–</option>
                   {GOAL_OPTIONS.map((n) => (
-                    <option key={n} value={n} style={{ background: "#0a1628", color: "#fff" }}>{n}</option>
+                    <option key={n} value={n} style={{ background: "#141923", color: "#f4f0e7" }}>{n}</option>
                   ))}
                 </select>
               </React.Fragment>
@@ -197,8 +197,8 @@ export default function MatchCard({
                 style={
                   selected
                     ? isDivergent
-                      ? { background: "rgba(245,195,0,0.25)", color: "#f5c300", border: "1px solid rgba(245,195,0,0.5)" }
-                      : { background: "rgba(245,195,0,0.15)", color: "#f5c300", border: "1px solid rgba(245,195,0,0.35)" }
+                      ? { background: "rgba(233,177,58,0.25)", color: "#e9b13a", border: "1px solid rgba(233,177,58,0.5)" }
+                      : { background: "rgba(233,177,58,0.12)", color: "#e9b13a", border: "1px solid rgba(233,177,58,0.3)" }
                     : disabled
                     ? { background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.05)" }
                     : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }

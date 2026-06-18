@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-wc-navy: #060d1e;
-  --color-wc-blue: #0d2e72;
-  --color-wc-blue-mid: #163d94;
-  --color-wc-electric: #2352f0;
-  --color-wc-red: #e63312;
-  --color-wc-red-light: #ff4d2e;
-  --color-wc-green: #00a652;
-  --color-wc-gold: #f5c300;
-  --color-wc-gold-light: #ffd93d;
-  --color-wc-white: #ffffff;
-  --color-wc-dark: #060d1e;
+  /* Brand Kit — Bolão GZM palette */
+  --color-wc-gold: #e9b13a;
+  --color-wc-gold-light: #f2c56a;
+  --color-wc-green: #1fa45f;
+  --color-wc-red: #dd4a3b;
+  --color-wc-red-light: #e96255;
+  --color-wc-white: #f4f0e7;
+  --color-wc-dark: #0c0f13;
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-bebas), Impact, "Arial Narrow", Arial, sans-serif;
+  /* Neutral tokens — mapped so legacy wc-blue/wc-electric classes still work */
+  --color-wc-navy: #0c0f13;
+  --color-wc-blue: #141923;
+  --color-wc-blue-mid: #1a212c;
+  --color-wc-electric: #e9b13a;
+
+  /* Typography */
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-archivo), monospace;
+  --font-display: var(--font-anton), Impact, "Arial Narrow", Arial, sans-serif;
 }
 
 :root {
-  --background: #060d1e;
-  --foreground: #ffffff;
+  --background: #0c0f13;
+  --foreground: #f4f0e7;
 }
 
 * {
@@ -34,7 +38,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -44,10 +48,10 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #060d1e;
+  background: #0c0f13;
 }
 ::-webkit-scrollbar-thumb {
-  background: #f5c300;
+  background: #e9b13a;
   border-radius: 3px;
 }
 
@@ -74,25 +78,14 @@ input[type="number"] {
 }
 
 .text-gold-gradient {
-  background: linear-gradient(135deg, #f5c300, #ffd93d, #f5c300);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.text-electric-gradient {
-  background: linear-gradient(135deg, #2352f0, #4d7aff);
+  background: linear-gradient(135deg, #e9b13a, #f2c56a, #e9b13a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glow-gold {
-  box-shadow: 0 0 24px rgba(245, 195, 0, 0.25);
-}
-
-.glow-electric {
-  box-shadow: 0 0 24px rgba(35, 82, 240, 0.35);
+  box-shadow: 0 0 24px rgba(233, 177, 58, 0.25);
 }
 
 /* Hide scrollbar for tab lists */
