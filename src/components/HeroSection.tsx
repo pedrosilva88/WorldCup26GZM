@@ -1,95 +1,26 @@
 "use client";
 
-function GzmCrest({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={className}
-      style={{
-        width: 120,
-        aspectRatio: "6/7",
-        position: "relative",
-        background: "linear-gradient(180deg, #1c2433, #11161f)",
-        clipPath: "polygon(50% 0,100% 0,100% 62%,50% 100%,0 62%,0 0)",
-        filter: "drop-shadow(0 14px 34px rgba(0,0,0,0.5))",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 7,
-          clipPath: "polygon(50% 0,100% 0,100% 62%,50% 100%,0 62%,0 0)",
-          background: "linear-gradient(180deg, #222c3d, #141a24)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          paddingTop: 18,
-          gap: 5,
-          boxShadow: "inset 0 0 0 2px rgba(233,177,58,0.45)",
-        }}
-      >
-        <div style={{ display: "flex", gap: 3 }}>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <span key={i} style={{ color: "#e9b13a", fontSize: 7 }}>★</span>
-          ))}
-        </div>
-        <div
-          className="font-display"
-          style={{ fontSize: 38, lineHeight: 0.85, letterSpacing: "0.02em", color: "#f4f0e7" }}
-        >
-          GZM
-        </div>
-        <div
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: "50%",
-            background: "radial-gradient(circle at 38% 32%, #fff, #c2c8d1 72%, #a3a9b3)",
-            position: "relative",
-            marginTop: 2,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: "36%",
-              aspectRatio: "1",
-              transform: "translate(-50%,-50%)",
-              background: "#13171d",
-              clipPath: "polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)",
-            }}
-          />
-        </div>
-        <div style={{ fontSize: 6.5, letterSpacing: "0.28em", color: "#e9b13a", fontWeight: 800, textTransform: "uppercase" }}>
-          Est. 2026
-        </div>
-      </div>
-      {/* Banner */}
-      <div
-        className="font-display"
-        style={{
-          position: "absolute",
-          bottom: "19%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "#dd4a3b",
-          color: "#fff",
-          fontSize: 8,
-          letterSpacing: "0.12em",
-          padding: "2px 10px",
-          whiteSpace: "nowrap",
-        }}
-      >
-        MUNDIAL 26
-      </div>
-    </div>
-  );
-}
+const AVATARS: { src: string; x: number; y: number; size: number; opacity: number; dur: number; delay: number }[] = [
+  { src: "/avatars/avatar1.png", x:  4, y: 10, size: 88,  opacity: 0.07, dur: 9,  delay: 0   },
+  { src: "/avatars/avatar2.png", x: 83, y:  6, size: 80,  opacity: 0.06, dur: 11, delay: 1.5 },
+  { src: "/avatars/avatar3.png", x: 14, y: 60, size: 72,  opacity: 0.06, dur: 13, delay: 0.8 },
+  { src: "/avatars/avatar4.png", x: 76, y: 65, size: 90,  opacity: 0.07, dur: 10, delay: 3   },
+  { src: "/avatars/avatar5.png", x: 42, y:  5, size: 70,  opacity: 0.05, dur: 14, delay: 2   },
+  { src: "/avatars/avatar6.png", x: 58, y: 74, size: 76,  opacity: 0.06, dur: 12, delay: 4   },
+  { src: "/avatars/avatar7.png", x: -1, y: 38, size: 64,  opacity: 0.05, dur: 15, delay: 1   },
+  { src: "/avatars/avatar8.png", x: 89, y: 40, size: 78,  opacity: 0.06, dur: 10, delay: 2.5 },
+];
 
 export default function HeroSection() {
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
+      <style>{`
+        @keyframes avatar-float {
+          0%,100% { transform: translateY(0px) rotate(-2deg); }
+          50%      { transform: translateY(-14px) rotate(2deg); }
+        }
+      `}</style>
+
       {/* Background blobs */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div className="absolute -bottom-32 -left-32 w-[480px] h-[480px] rounded-full opacity-20"
@@ -98,6 +29,38 @@ export default function HeroSection() {
           style={{ background: "radial-gradient(circle, #dd4a3b 0%, transparent 65%)" }} />
         <div className="absolute top-8 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #e9b13a 0%, transparent 60%)" }} />
+      </div>
+
+      {/* Floating avatars */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden
+        style={{
+          maskImage: "radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 100%)",
+        }}
+      >
+        {AVATARS.map((av, i) => (
+          <img
+            key={i}
+            src={av.src}
+            alt=""
+            width={av.size}
+            height={av.size}
+            style={{
+              position: "absolute",
+              left: `${av.x}%`,
+              top: `${av.y}%`,
+              width: av.size,
+              height: av.size,
+              objectFit: "contain",
+              opacity: av.opacity,
+              animation: `avatar-float ${av.dur}s ease-in-out ${av.delay}s infinite`,
+              userSelect: "none",
+              filter: "grayscale(30%)",
+            }}
+          />
+        ))}
       </div>
 
       <div className="relative max-w-4xl mx-auto px-4 text-center">
@@ -112,7 +75,16 @@ export default function HeroSection() {
 
         {/* Crest + title */}
         <div className="flex flex-col items-center gap-6 mb-6">
-          <GzmCrest />
+          <img
+            src="/logos/crest.png"
+            alt="GZM Crest"
+            width={120}
+            height={140}
+            style={{
+              objectFit: "contain",
+              filter: "drop-shadow(0 14px 34px rgba(0,0,0,0.5))",
+            }}
+          />
           <div>
             <h1 className="font-display leading-none tracking-wide">
               <span className="block text-wc-white" style={{ fontSize: "clamp(3.5rem, 14vw, 8rem)" }}>
