@@ -162,8 +162,8 @@ export default function HeroSection() {
               draggable={false}
               style={{
                 width: "100%",
-                height: "100%",
-                objectFit: "contain",
+                height: "143%",
+                objectFit: "cover",
                 objectPosition: "50% 0%",
               }}
             />
