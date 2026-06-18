@@ -1,26 +1,123 @@
 "use client";
 
-const AVATARS: { src: string; x: number; y: number; size: number; opacity: number; dur: number; delay: number }[] = [
-  { src: "/avatars/avatar1.png", x:  4, y: 10, size: 88,  opacity: 0.07, dur: 9,  delay: 0   },
-  { src: "/avatars/avatar2.png", x: 83, y:  6, size: 80,  opacity: 0.06, dur: 11, delay: 1.5 },
-  { src: "/avatars/avatar3.png", x: 14, y: 60, size: 72,  opacity: 0.06, dur: 13, delay: 0.8 },
-  { src: "/avatars/avatar4.png", x: 76, y: 65, size: 90,  opacity: 0.07, dur: 10, delay: 3   },
-  { src: "/avatars/avatar5.png", x: 42, y:  5, size: 70,  opacity: 0.05, dur: 14, delay: 2   },
-  { src: "/avatars/avatar6.png", x: 58, y: 74, size: 76,  opacity: 0.06, dur: 12, delay: 4   },
-  { src: "/avatars/avatar7.png", x: -1, y: 38, size: 64,  opacity: 0.05, dur: 15, delay: 1   },
-  { src: "/avatars/avatar8.png", x: 89, y: 40, size: 78,  opacity: 0.06, dur: 10, delay: 2.5 },
+import { useEffect, useRef } from "react";
+
+const AVATAR_SRCS = [
+  "/avatars/avatar1.png",
+  "/avatars/avatar2.png",
+  "/avatars/avatar3.png",
+  "/avatars/avatar4.png",
+  "/avatars/avatar5.png",
+  "/avatars/avatar6.png",
+  "/avatars/avatar7.png",
+  "/avatars/avatar8.png",
 ];
 
+const R = 38; // radius px
+const SPEED = 0.16; // px/ms base
+
+type Ball = { x: number; y: number; vx: number; vy: number; el: HTMLDivElement };
+
+function spawnBalls(els: NodeListOf<Element>, W: number, H: number): Ball[] {
+  const balls: Ball[] = [];
+  for (let i = 0; i < els.length; i++) {
+    let x = 0, y = 0, tries = 0;
+    do {
+      x = R + Math.random() * (W - 2 * R);
+      y = R + Math.random() * (H - 2 * R);
+      tries++;
+    } while (tries < 60 && balls.some((b) => Math.hypot(b.x - x, b.y - y) < 2 * R + 12));
+
+    const angle = Math.random() * 2 * Math.PI;
+    const speed = SPEED * (0.5 + Math.random() * 1.0);
+    balls.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      el: els[i] as HTMLDivElement,
+    });
+  }
+  return balls;
+}
+
 export default function HeroSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const W = container.clientWidth || 375;
+    const H = container.clientHeight || 500;
+
+    const els = container.querySelectorAll("[data-avatar]");
+    if (!els.length) return;
+
+    const balls = spawnBalls(els, W, H);
+    for (const b of balls) {
+      b.el.style.transform = `translate(${b.x - R}px, ${b.y - R}px)`;
+    }
+
+    let last = 0;
+    let raf = 0;
+
+    const tick = (t: number) => {
+      if (!last) last = t;
+      const dt = Math.min(t - last, 32); // cap delta so lag doesn't explode
+      last = t;
+
+      // Integrate positions
+      for (const b of balls) {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+      }
+
+      // Wall bounces
+      for (const b of balls) {
+        if (b.x - R < 0)  { b.x = R;     b.vx =  Math.abs(b.vx); }
+        if (b.x + R > W)  { b.x = W - R; b.vx = -Math.abs(b.vx); }
+        if (b.y - R < 0)  { b.y = R;     b.vy =  Math.abs(b.vy); }
+        if (b.y + R > H)  { b.y = H - R; b.vy = -Math.abs(b.vy); }
+      }
+
+      // Ball–ball elastic collisions (equal mass)
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          const a = balls[i], b = balls[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const d = Math.hypot(dx, dy);
+          if (d === 0 || d >= 2 * R) continue;
+
+          // Separate overlapping circles
+          const nx = dx / d, ny = dy / d;
+          const push = (2 * R - d) * 0.5;
+          a.x -= nx * push; a.y -= ny * push;
+          b.x += nx * push; b.y += ny * push;
+
+          // Transfer normal-axis velocity (only if approaching)
+          const dvn = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+          if (dvn > 0) {
+            a.vx -= dvn * nx; a.vy -= dvn * ny;
+            b.vx += dvn * nx; b.vy += dvn * ny;
+          }
+        }
+      }
+
+      // Write transforms
+      for (const b of balls) {
+        b.el.style.transform = `translate(${b.x - R}px, ${b.y - R}px)`;
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
-      <style>{`
-        @keyframes avatar-float {
-          0%,100% { transform: translateY(0px) rotate(-2deg); }
-          50%      { transform: translateY(-14px) rotate(2deg); }
-        }
-      `}</style>
-
       {/* Background blobs */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div className="absolute -bottom-32 -left-32 w-[480px] h-[480px] rounded-full opacity-20"
@@ -31,35 +128,45 @@ export default function HeroSection() {
           style={{ background: "radial-gradient(circle, #e9b13a 0%, transparent 60%)" }} />
       </div>
 
-      {/* Floating avatars */}
+      {/* Physics avatars */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        ref={containerRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden"
         aria-hidden
         style={{
-          maskImage: "radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 100%)",
+          maskImage: "radial-gradient(ellipse 88% 78% at 50% 50%, black 15%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 88% 78% at 50% 50%, black 15%, transparent 100%)",
         }}
       >
-        {AVATARS.map((av, i) => (
-          <img
+        {AVATAR_SRCS.map((src, i) => (
+          <div
             key={i}
-            src={av.src}
-            alt=""
-            width={av.size}
-            height={av.size}
+            data-avatar={i}
             style={{
               position: "absolute",
-              left: `${av.x}%`,
-              top: `${av.y}%`,
-              width: av.size,
-              height: av.size,
-              objectFit: "contain",
-              opacity: av.opacity,
-              animation: `avatar-float ${av.dur}s ease-in-out ${av.delay}s infinite`,
+              top: 0,
+              left: 0,
+              width: R * 2,
+              height: R * 2,
+              borderRadius: "50%",
+              overflow: "hidden",
+              opacity: 0.09,
+              willChange: "transform",
               userSelect: "none",
-              filter: "grayscale(30%)",
             }}
-          />
+          >
+            <img
+              src={src}
+              alt=""
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "160%",
+                objectFit: "cover",
+                objectPosition: "50% 8%",
+              }}
+            />
+          </div>
         ))}
       </div>
 
@@ -121,10 +228,10 @@ export default function HeroSection() {
         {/* Scoring pills */}
         <div className="mt-10 flex flex-wrap justify-center gap-2">
           {[
-            { pts: "1pt",  label: "1X2 correto",     color: "bg-white/5 border-white/10 text-wc-white/50" },
-            { pts: "3pts", label: "Resultado exato",  color: "bg-wc-green/15 border-wc-green/30 text-wc-green" },
-            { pts: "10pts",label: "Vencedor",         color: "bg-wc-gold/15 border-wc-gold/30 text-wc-gold" },
-            { pts: "15pts",label: "Melhor marcador",  color: "bg-wc-red/15 border-wc-red/30 text-wc-red" },
+            { pts: "1pt",   label: "1X2 correto",    color: "bg-white/5 border-white/10 text-wc-white/50" },
+            { pts: "3pts",  label: "Resultado exato", color: "bg-wc-green/15 border-wc-green/30 text-wc-green" },
+            { pts: "10pts", label: "Vencedor",        color: "bg-wc-gold/15 border-wc-gold/30 text-wc-gold" },
+            { pts: "15pts", label: "Melhor marcador", color: "bg-wc-red/15 border-wc-red/30 text-wc-red" },
           ].map((item) => (
             <div key={item.label} className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 ${item.color}`}>
               <span className="font-bold text-xs tabular-nums">{item.pts}</span>
