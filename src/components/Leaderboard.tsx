@@ -30,12 +30,15 @@ function Avatar({ entry, idx }: { entry: LeaderboardEntry; idx: number }) {
   const index = entry.avatar_index;
   if (index) {
     return (
-      <img
-        src={`/avatars/avatar${index}.png`}
-        alt={entry.user_name}
-        width={40}
-        height={40}
-        style={{ objectFit: "contain", flexShrink: 0 }}
+      <div
+        style={{
+          width: 44, height: 44, flexShrink: 0,
+          backgroundImage: `url(/avatars/avatar${index}.png)`,
+          backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+        }}
+        aria-label={entry.user_name}
       />
     );
   }
