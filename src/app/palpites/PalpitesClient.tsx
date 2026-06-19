@@ -250,7 +250,7 @@ function UserBadge({ name }: { name: string }) {
         color: "#bbb", whiteSpace: "nowrap",
       }}
     >
-      {name.split(" ")[0]}
+      {name}
     </span>
   );
 }
