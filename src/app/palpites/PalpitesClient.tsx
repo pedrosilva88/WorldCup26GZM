@@ -13,7 +13,7 @@ import { getFlagUrl } from "@/lib/flags";
 
 interface GroupedScorer { player: string; users: string[]; }
 interface GroupedWinner { team: string; users: string[]; }
-interface OfficialScorer { player_name: string; team_name: string; goals: number; assists: number; penalties: number; }
+interface OfficialScorer { player_name: string; team_name: string; goals: number; }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -563,17 +563,9 @@ export default function PalpitesClient() {
                           <p className="text-sm font-semibold text-wc-white truncate">{s.player_name}</p>
                           <p className="text-[11px] text-wc-white/35">{s.team_name}</p>
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <div className="text-right">
-                            <p className="font-display text-lg text-wc-gold tabular-nums leading-none">{s.goals}</p>
-                            <p className="text-[9px] text-wc-white/25 uppercase tracking-wider">golos</p>
-                          </div>
-                          {s.assists > 0 && (
-                            <div className="text-right">
-                              <p className="font-display text-base text-wc-white/40 tabular-nums leading-none">{s.assists}</p>
-                              <p className="text-[9px] text-wc-white/25 uppercase tracking-wider">ass.</p>
-                            </div>
-                          )}
+                        <div className="flex-shrink-0 text-right">
+                          <p className="font-display text-lg text-wc-gold tabular-nums leading-none">{s.goals}</p>
+                          <p className="text-[9px] text-wc-white/25 uppercase tracking-wider">golos</p>
                         </div>
                       </div>
                     ))}

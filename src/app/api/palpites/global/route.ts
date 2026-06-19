@@ -11,8 +11,9 @@ export async function GET() {
       .not("top_scorer", "is", null),
     supabase
       .from("top_scorers")
-      .select("player_name, team_name, goals, assists, penalties")
-      .order("goals", { ascending: false }),
+      .select("player_name, team_name, goals")
+      .order("goals", { ascending: false })
+      .limit(10),
   ]);
 
   // Group by top_scorer
