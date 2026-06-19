@@ -133,7 +133,7 @@ async function syncFromApi() {
       const existingPhotos: Record<string, string | null> = {};
       for (const row of existing ?? []) existingPhotos[row.player_name] = row.photo_url;
 
-      await supabase.from("top_scorers").delete().neq("id", 0);
+      await supabase.from("top_scorers").delete().eq("is_manual", false);
 
       const rows = [];
       for (const s of scorers) {
