@@ -21,7 +21,7 @@ async function fetchPlayerPhoto(name: string): Promise<string | null> {
     );
     if (!res.ok) return null;
     const json = await res.json();
-    const player = json.players?.[0];
+    const player = (json.player ?? json.players)?.[0];
     return player?.strThumb || player?.strCutout || null;
   } catch {
     return null;
