@@ -58,6 +58,7 @@ export interface GlobalPrediction {
 export interface LeaderboardEntry {
   user_id: string;
   user_name: string;
+  avatar_index: number | null;
   total_points: number;
   correct_1x2: number;
   correct_scores: number;

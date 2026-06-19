@@ -13,36 +13,49 @@ const RANK_CONFIG = [
     bg: "border-wc-gold/40",
     cardStyle: { background: "rgba(233,177,58,0.08)" },
     numStyle: { color: "#e9b13a" },
-    badge: (
-      <div className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
-        <Trophy size={14} className="text-wc-dark" />
-      </div>
-    ),
   },
   {
     bg: "border-slate-400/25",
     cardStyle: { background: "rgba(148,163,184,0.06)" },
     numStyle: { color: "#cbd5e1" },
-    badge: (
-      <div className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: "rgba(148,163,184,0.15)", border: "1px solid rgba(148,163,184,0.3)" }}>
-        <span className="text-slate-300 font-display text-base">2</span>
-      </div>
-    ),
   },
   {
     bg: "border-amber-700/25",
     cardStyle: { background: "rgba(180,83,9,0.06)" },
     numStyle: { color: "#d97706" },
-    badge: (
-      <div className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: "rgba(180,83,9,0.15)", border: "1px solid rgba(180,83,9,0.3)" }}>
-        <span className="text-amber-600 font-display text-base">3</span>
-      </div>
-    ),
   },
 ];
+
+function Avatar({ entry, idx }: { entry: LeaderboardEntry; idx: number }) {
+  const index = entry.avatar_index;
+  if (index) {
+    return (
+      <img
+        src={`/avatars/avatar${index}.png`}
+        alt={entry.user_name}
+        width={32}
+        height={32}
+        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+      />
+    );
+  }
+  // fallback — number badge
+  const isTop = idx < 3;
+  if (idx === 0) {
+    return (
+      <div className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
+        <Trophy size={14} className="text-wc-dark" />
+      </div>
+    );
+  }
+  return (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center"
+      style={{ background: isTop ? "rgba(148,163,184,0.15)" : "rgba(255,255,255,0.05)" }}>
+      <span className="font-display text-wc-white/30 text-base">{idx + 1}</span>
+    </div>
+  );
+}
 
 export default function Leaderboard({ entries }: LeaderboardProps) {
   if (entries.length === 0) {
@@ -70,16 +83,9 @@ export default function Leaderboard({ entries }: LeaderboardProps) {
             )}
             style={isTop ? cfg.cardStyle : { background: "rgba(255,255,255,0.03)" }}
           >
-            {/* Rank badge */}
+            {/* Avatar */}
             <div className="shrink-0">
-              {isTop ? (
-                cfg.badge
-              ) : (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <span className="font-display text-wc-white/30 text-base">{idx + 1}</span>
-                </div>
-              )}
+              <Avatar entry={entry} idx={idx} />
             </div>
 
             {/* Name + stats */}
