@@ -33,9 +33,9 @@ function Avatar({ entry, idx }: { entry: LeaderboardEntry; idx: number }) {
       <img
         src={`/avatars/avatar${index}.png`}
         alt={entry.user_name}
-        width={32}
-        height={32}
-        style={{ borderRadius: "50%", objectFit: "cover", objectPosition: "top center", flexShrink: 0 }}
+        width={40}
+        height={40}
+        style={{ borderRadius: "50%", objectFit: "cover", objectPosition: "center 15%", flexShrink: 0 }}
       />
     );
   }
@@ -43,14 +43,14 @@ function Avatar({ entry, idx }: { entry: LeaderboardEntry; idx: number }) {
   const isTop = idx < 3;
   if (idx === 0) {
     return (
-      <div className="w-8 h-8 rounded-full flex items-center justify-center"
+      <div className="w-10 h-10 rounded-full flex items-center justify-center"
         style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
         <Trophy size={14} className="text-wc-dark" />
       </div>
     );
   }
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center"
+    <div className="w-10 h-10 rounded-full flex items-center justify-center"
       style={{ background: isTop ? "rgba(148,163,184,0.15)" : "rgba(255,255,255,0.05)" }}>
       <span className="font-display text-wc-white/30 text-base">{idx + 1}</span>
     </div>
