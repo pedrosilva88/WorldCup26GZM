@@ -11,7 +11,7 @@ import { getFlagUrl } from "@/lib/flags";
 
 // ─── Global prediction types ──────────────────────────────────────────────────
 
-interface GroupedScorer { player: string; users: string[]; }
+interface GroupedScorer { player: string; users: string[]; goals: number | null; }
 interface GroupedWinner { team: string; users: string[]; }
 interface OfficialScorer { player_name: string; team_name: string; goals: number; }
 
@@ -512,7 +512,7 @@ export default function PalpitesClient() {
                   <p className="text-sm text-wc-white/20">Sem palpites ainda</p>
                 ) : (
                   <div className="space-y-3">
-                    {groupedScorers.map(({ player, users }) => (
+                    {groupedScorers.map(({ player, users, goals }) => (
                       <div
                         key={player}
                         className="rounded-xl border p-4"
@@ -523,12 +523,19 @@ export default function PalpitesClient() {
                             <Star size={12} className="text-wc-gold" />
                             <span className="text-sm font-bold text-wc-white">{player}</span>
                           </div>
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "rgba(233,177,58,0.1)", color: "#e9b13a" }}
-                          >
-                            {users.length}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {goals !== null && (
+                              <span className="font-display text-base text-wc-gold tabular-nums leading-none">
+                                {goals}
+                              </span>
+                            )}
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: "rgba(255,255,255,0.06)", color: "#888" }}
+                            >
+                              {users.length}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {users.map((u) => <UserBadge key={u} name={u} />)}

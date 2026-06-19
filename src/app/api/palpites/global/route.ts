@@ -33,9 +33,12 @@ export async function GET() {
     }
   }
 
+  const goalsMap: Record<string, number> = {};
+  for (const s of officialScorers ?? []) goalsMap[s.player_name] = s.goals;
+
   const groupedScorers = Object.entries(scorerMap)
-    .map(([player, users]) => ({ player, users }))
-    .sort((a, b) => b.users.length - a.users.length);
+    .map(([player, users]) => ({ player, users, goals: goalsMap[player] ?? null }))
+    .sort((a, b) => (b.goals ?? -1) - (a.goals ?? -1));
 
   const groupedWinners = Object.entries(winnerMap)
     .map(([team, users]) => ({ team, users }))
