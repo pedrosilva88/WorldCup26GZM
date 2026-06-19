@@ -496,7 +496,7 @@ export default function PalpitesClient() {
 
       {/* ── Marcador ───────────────────────────────────────────────────────── */}
       {section === "marcador" && (
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-12 space-y-8">
+        <div className="max-w-5xl mx-auto px-4 pt-5 pb-12">
           {loadingGlobal && (
             <div className="flex justify-center py-10">
               <div className="w-6 h-6 rounded-full border-2 border-wc-gold/30 border-t-wc-gold animate-spin" />
@@ -504,9 +504,9 @@ export default function PalpitesClient() {
           )}
 
           {!loadingGlobal && (
-            <>
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* User predictions grouped by player */}
-              <div>
+              <div className="w-full sm:flex-1">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Palpites do grupo</p>
                 {groupedScorers.length === 0 ? (
                   <p className="text-sm text-wc-white/20">Sem palpites ainda</p>
@@ -541,7 +541,7 @@ export default function PalpitesClient() {
 
               {/* Official top scorers */}
               {officialScorers.length > 0 && (
-                <div>
+                <div className="w-full sm:flex-1">
                   <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Lista oficial</p>
                   <div
                     className="rounded-xl border overflow-hidden"
@@ -582,9 +582,12 @@ export default function PalpitesClient() {
               )}
 
               {officialScorers.length === 0 && (
-                <p className="text-sm text-wc-white/20">Lista oficial ainda não disponível</p>
+                <div className="w-full sm:flex-1">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Lista oficial</p>
+                  <p className="text-sm text-wc-white/20">Ainda não disponível</p>
+                </div>
               )}
-            </>
+            </div>
           )}
         </div>
       )}
