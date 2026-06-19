@@ -11,7 +11,7 @@ export async function GET() {
       .not("top_scorer", "is", null),
     supabase
       .from("top_scorers")
-      .select("player_name, team_name, goals")
+      .select("player_name, team_name, goals, photo_url")
       .order("goals", { ascending: false })
       .limit(10),
   ]);
@@ -33,11 +33,18 @@ export async function GET() {
     }
   }
 
-  const goalsMap: Record<string, number> = {};
-  for (const s of officialScorers ?? []) goalsMap[s.player_name] = s.goals;
+  const officialMap: Record<string, { goals: number; photo_url: string | null }> = {};
+  for (const s of officialScorers ?? []) {
+    officialMap[s.player_name] = { goals: s.goals, photo_url: s.photo_url ?? null };
+  }
 
   const groupedScorers = Object.entries(scorerMap)
-    .map(([player, users]) => ({ player, users, goals: goalsMap[player] ?? null }))
+    .map(([player, users]) => ({
+      player,
+      users,
+      goals: officialMap[player]?.goals ?? null,
+      photo_url: officialMap[player]?.photo_url ?? null,
+    }))
     .sort((a, b) => (b.goals ?? -1) - (a.goals ?? -1));
 
   const groupedWinners = Object.entries(winnerMap)

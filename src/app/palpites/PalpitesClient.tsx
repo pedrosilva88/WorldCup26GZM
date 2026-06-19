@@ -11,9 +11,9 @@ import { getFlagUrl } from "@/lib/flags";
 
 // ─── Global prediction types ──────────────────────────────────────────────────
 
-interface GroupedScorer { player: string; users: string[]; goals: number | null; }
+interface GroupedScorer { player: string; users: string[]; goals: number | null; photo_url?: string | null; }
 interface GroupedWinner { team: string; users: string[]; }
-interface OfficialScorer { player_name: string; team_name: string; goals: number; }
+interface OfficialScorer { player_name: string; team_name: string; goals: number; photo_url?: string | null; }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -512,7 +512,7 @@ export default function PalpitesClient() {
                   <p className="text-sm text-wc-white/20">Sem palpites ainda</p>
                 ) : (
                   <div className="space-y-3">
-                    {groupedScorers.map(({ player, users, goals }) => (
+                    {groupedScorers.map(({ player, users, goals, photo_url }) => (
                       <div
                         key={player}
                         className="rounded-xl border p-4"
@@ -520,7 +520,11 @@ export default function PalpitesClient() {
                       >
                         <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-2">
-                            <Star size={12} className="text-wc-gold" />
+                            {photo_url ? (
+                              <img src={photo_url} alt={player} width={28} height={28} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "#1a1a1a" }} />
+                            ) : (
+                              <Star size={12} className="text-wc-gold" />
+                            )}
                             <span className="text-sm font-bold text-wc-white">{player}</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -566,6 +570,11 @@ export default function PalpitesClient() {
                         <span className="text-[11px] font-bold tabular-nums text-wc-white/20 w-5 text-right flex-shrink-0">
                           {i + 1}
                         </span>
+                        {s.photo_url ? (
+                          <img src={s.photo_url} alt={s.player_name} width={32} height={32} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "#1a1a1a" }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#1a1a1a", flexShrink: 0 }} />
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-wc-white truncate">{s.player_name}</p>
                           <p className="text-[11px] text-wc-white/35">{s.team_name}</p>

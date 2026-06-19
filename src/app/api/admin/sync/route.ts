@@ -7,6 +7,27 @@ import { Match, Prediction } from "@/types";
 
 const WC_2026_CODE = "WC";
 
+async function fetchPlayerPhoto(name: string): Promise<string | null> {
+  try {
+    // Normalize: remove accents and special chars for better matching
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z\s]/g, "")
+      .trim();
+    const res = await fetch(
+      `https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=${encodeURIComponent(normalized)}`,
+      { next: { revalidate: 0 } }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const player = json.players?.[0];
+    return player?.strThumb || player?.strCutout || null;
+  } catch {
+    return null;
+  }
+}
+
 async function syncFromApi() {
   const apiKey = process.env.FOOTBALL_API_KEY;
   if (!apiKey) return { synced: 0, error: "API key não configurada." };
@@ -103,21 +124,36 @@ async function syncFromApi() {
     synced++;
   }
 
-  // Sync top scorers (replace full list)
+  // Sync top scorers (replace full list, reuse existing photos)
   try {
     const scorers = await getTopScorers(apiKey);
     if (scorers.length > 0) {
+      // Preserve existing photo URLs so we don't re-fetch on every sync
+      const { data: existing } = await supabase.from("top_scorers").select("player_name, photo_url");
+      const existingPhotos: Record<string, string | null> = {};
+      for (const row of existing ?? []) existingPhotos[row.player_name] = row.photo_url;
+
       await supabase.from("top_scorers").delete().neq("id", 0);
-      await supabase.from("top_scorers").insert(
-        scorers.map((s) => ({
+
+      const rows = [];
+      for (const s of scorers) {
+        let photoUrl = existingPhotos[s.player.name] ?? null;
+        if (!photoUrl) {
+          photoUrl = await fetchPlayerPhoto(s.player.name);
+          // Be polite to TheSportsDB free tier
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        rows.push({
           player_name: s.player.name,
           team_name: translateTeam(s.team.name),
           goals: s.goals ?? 0,
           assists: s.assists ?? 0,
           penalties: s.penalties ?? 0,
+          photo_url: photoUrl,
           updated_at: new Date().toISOString(),
-        }))
-      );
+        });
+      }
+      await supabase.from("top_scorers").insert(rows);
     }
   } catch {
     // Scorers endpoint may not be available on current API plan — silently skip

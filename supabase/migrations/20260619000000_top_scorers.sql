@@ -13,3 +13,5 @@ alter table public.top_scorers enable row level security;
 create policy "Public read top_scorers" on public.top_scorers for select using (true);
 create policy "Service insert top_scorers" on public.top_scorers for insert with check (true);
 create policy "Service delete top_scorers" on public.top_scorers for delete using (true);
+
+ALTER TABLE public.top_scorers ADD COLUMN IF NOT EXISTS photo_url text;
