@@ -525,14 +525,11 @@ export default function PalpitesClient() {
                             ) : (
                               <Star size={12} className="text-wc-gold" />
                             )}
-                            <span className="text-sm font-bold text-wc-white">{player}</span>
+                            <span className="text-sm font-bold text-wc-white">
+                              {player}{goals !== null ? ` (${goals} ⚽)` : ""}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            {goals !== null && (
-                              <span className="font-display text-base text-wc-gold tabular-nums leading-none">
-                                {goals}
-                              </span>
-                            )}
                             <span
                               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                               style={{ background: "rgba(255,255,255,0.06)", color: "#888" }}
