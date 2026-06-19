@@ -35,7 +35,7 @@ function Avatar({ entry, idx }: { entry: LeaderboardEntry; idx: number }) {
         alt={entry.user_name}
         width={32}
         height={32}
-        style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+        style={{ borderRadius: "50%", objectFit: "cover", objectPosition: "top center", flexShrink: 0 }}
       />
     );
   }
