@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { calculatePoints } from "@/lib/scoring";
-import { translateTeam } from "@/lib/football-api";
+import { translateTeam, getTopScorers } from "@/lib/football-api";
 import { Match, Prediction } from "@/types";
 
 const WC_2026_CODE = "WC";
@@ -101,6 +101,26 @@ async function syncFromApi() {
     }
 
     synced++;
+  }
+
+  // Sync top scorers (replace full list)
+  try {
+    const scorers = await getTopScorers(apiKey);
+    if (scorers.length > 0) {
+      await supabase.from("top_scorers").delete().neq("id", 0);
+      await supabase.from("top_scorers").insert(
+        scorers.map((s) => ({
+          player_name: s.player.name,
+          team_name: translateTeam(s.team.name),
+          goals: s.goals ?? 0,
+          assists: s.assists ?? 0,
+          penalties: s.penalties ?? 0,
+          updated_at: new Date().toISOString(),
+        }))
+      );
+    }
+  } catch {
+    // Scorers endpoint may not be available on current API plan — silently skip
   }
 
   return { synced, errors: errors.length > 0 ? errors : undefined };

@@ -9,6 +9,12 @@ import { Trophy, Star, ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { getFlagUrl } from "@/lib/flags";
 
+// ─── Global prediction types ──────────────────────────────────────────────────
+
+interface GroupedScorer { player: string; users: string[]; }
+interface GroupedWinner { team: string; users: string[]; }
+interface OfficialScorer { player_name: string; team_name: string; goals: number; assists: number; penalties: number; }
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface LbUser { user_id: string; user_name: string; total_points: number; }
@@ -233,12 +239,29 @@ function GameInfoCard({ match }: { match: DayMatch }) {
   );
 }
 
+// ─── GlobalPredCard ───────────────────────────────────────────────────────────
+
+function UserBadge({ name }: { name: string }) {
+  return (
+    <span
+      style={{
+        fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+        color: "#bbb", whiteSpace: "nowrap",
+      }}
+    >
+      {name.split(" ")[0]}
+    </span>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PalpitesClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const [section, setSection] = useState<"jogos" | "marcador" | "campeao">("jogos");
   const [tab, setTab] = useState<"user" | "day">("day");
 
   // ── Por Utilizador state ──────────────────────────────────────────────────
@@ -256,6 +279,13 @@ export default function PalpitesClient() {
   const [dayUsers, setDayUsers] = useState<DayUser[]>([]);
   const [loadingDay, setLoadingDay] = useState(false);
   const [daysLoaded, setDaysLoaded] = useState(false);
+
+  // ── Global predictions state ───────────────────────────────────────────────
+  const [groupedScorers, setGroupedScorers] = useState<GroupedScorer[]>([]);
+  const [groupedWinners, setGroupedWinners] = useState<GroupedWinner[]>([]);
+  const [officialScorers, setOfficialScorers] = useState<OfficialScorer[]>([]);
+  const [loadingGlobal, setLoadingGlobal] = useState(false);
+  const [globalLoaded, setGlobalLoaded] = useState(false);
 
   // Fetch leaderboard on mount
   useEffect(() => {
@@ -280,6 +310,22 @@ export default function PalpitesClient() {
       .finally(() => setLoadingUser(false));
     router.replace(`/palpites?user=${selectedUserId}`, { scroll: false });
   }, [selectedUserId, router]);
+
+  // Load global predictions when entering Marcador or Campeão
+  useEffect(() => {
+    if (section !== "marcador" && section !== "campeao") return;
+    if (globalLoaded) return;
+    setLoadingGlobal(true);
+    fetch("/api/palpites/global")
+      .then((r) => r.json())
+      .then((data) => {
+        setGroupedScorers(data.groupedScorers ?? []);
+        setGroupedWinners(data.groupedWinners ?? []);
+        setOfficialScorers(data.officialScorers ?? []);
+        setGlobalLoaded(true);
+      })
+      .finally(() => setLoadingGlobal(false));
+  }, [section, globalLoaded]);
 
   // Load days on mount (Por Dia is the default tab)
   useEffect(() => {
@@ -355,14 +401,20 @@ export default function PalpitesClient() {
             </Link>
             <div>
               <p className="text-sm font-bold text-wc-white leading-tight">
-                {tab === "user" ? (selectedLbUser?.user_name ?? "Palpites") : "Palpites · " + (selectedDay ? dayLabel(selectedDay) : "")}
+                {section === "jogos"
+                  ? tab === "user" ? (selectedLbUser?.user_name ?? "Palpites") : "Palpites · " + (selectedDay ? dayLabel(selectedDay) : "")
+                  : section === "marcador" ? "Melhor Marcador"
+                  : "Campeão"}
               </p>
               <p className="text-xs text-wc-white/30">
-                {tab === "user" ? "Por Utilizador" : "Por Dia"}
+                {section === "jogos"
+                  ? tab === "user" ? "Por Utilizador" : "Por Dia"
+                  : section === "marcador" ? "Palpites + Lista Oficial"
+                  : "Palpites do Grupo"}
               </p>
             </div>
           </div>
-          {tab === "user" && selectedLbUser && (
+          {section === "jogos" && tab === "user" && selectedLbUser && (
             <div className="text-right">
               <p className="text-xs text-wc-white/30">Pontos</p>
               <p className="font-display text-xl text-wc-gold tabular-nums">{selectedLbUser.total_points}</p>
@@ -370,26 +422,50 @@ export default function PalpitesClient() {
           )}
         </div>
 
-        {/* Tabs */}
+        {/* Top-level section tabs */}
         <div className="flex border-b border-white/6 px-4">
-          {(["day", "user"] as const).map((t) => (
+          {([
+            { key: "jogos",    label: "Jogos" },
+            { key: "marcador", label: "Marcador" },
+            { key: "campeao",  label: "Campeão" },
+          ] as const).map(({ key, label }) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={key}
+              onClick={() => setSection(key)}
               className={cn(
                 "px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all border-b-2 -mb-px",
-                tab === t
+                section === key
                   ? "text-wc-gold border-wc-gold"
                   : "text-wc-white/30 border-transparent hover:text-wc-white/60"
               )}
             >
-              {t === "user" ? "Por Utilizador" : "Por Dia"}
+              {label}
             </button>
           ))}
         </div>
 
+        {/* Sub-tabs (Por Dia / Por Utilizador) — Jogos only */}
+        {section === "jogos" && (
+          <div className="flex border-b border-white/4 px-4">
+            {(["day", "user"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "px-4 py-2 text-[11px] font-semibold tracking-wider uppercase transition-all border-b-2 -mb-px",
+                  tab === t
+                    ? "text-wc-white/80 border-wc-white/30"
+                    : "text-wc-white/20 border-transparent hover:text-wc-white/40"
+                )}
+              >
+                {t === "user" ? "Por Utilizador" : "Por Dia"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Day strip (Por Dia only) */}
-        {tab === "day" && days.length > 0 && (
+        {section === "jogos" && tab === "day" && days.length > 0 && (
           <div className="flex overflow-x-auto scrollbar-none px-4 gap-2 py-2.5">
             {days.map((d) => {
               const isPast = d < today;
@@ -418,8 +494,155 @@ export default function PalpitesClient() {
         )}
       </div>
 
+      {/* ── Marcador ───────────────────────────────────────────────────────── */}
+      {section === "marcador" && (
+        <div className="max-w-2xl mx-auto px-4 pt-5 pb-12 space-y-8">
+          {loadingGlobal && (
+            <div className="flex justify-center py-10">
+              <div className="w-6 h-6 rounded-full border-2 border-wc-gold/30 border-t-wc-gold animate-spin" />
+            </div>
+          )}
+
+          {!loadingGlobal && (
+            <>
+              {/* User predictions grouped by player */}
+              <div>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Palpites do grupo</p>
+                {groupedScorers.length === 0 ? (
+                  <p className="text-sm text-wc-white/20">Sem palpites ainda</p>
+                ) : (
+                  <div className="space-y-3">
+                    {groupedScorers.map(({ player, users }) => (
+                      <div
+                        key={player}
+                        className="rounded-xl border p-4"
+                        style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+                      >
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <Star size={12} className="text-wc-gold" />
+                            <span className="text-sm font-bold text-wc-white">{player}</span>
+                          </div>
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(233,177,58,0.1)", color: "#e9b13a" }}
+                          >
+                            {users.length}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {users.map((u) => <UserBadge key={u} name={u} />)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Official top scorers */}
+              {officialScorers.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Lista oficial</p>
+                  <div
+                    className="rounded-xl border overflow-hidden"
+                    style={{ borderColor: "rgba(255,255,255,0.07)" }}
+                  >
+                    {officialScorers.map((s, i) => (
+                      <div
+                        key={s.player_name}
+                        className="flex items-center gap-3 px-4 py-3"
+                        style={{
+                          background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                          borderBottom: i < officialScorers.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                        }}
+                      >
+                        <span className="text-[11px] font-bold tabular-nums text-wc-white/20 w-5 text-right flex-shrink-0">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-wc-white truncate">{s.player_name}</p>
+                          <p className="text-[11px] text-wc-white/35">{s.team_name}</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="font-display text-lg text-wc-gold tabular-nums leading-none">{s.goals}</p>
+                            <p className="text-[9px] text-wc-white/25 uppercase tracking-wider">golos</p>
+                          </div>
+                          {s.assists > 0 && (
+                            <div className="text-right">
+                              <p className="font-display text-base text-wc-white/40 tabular-nums leading-none">{s.assists}</p>
+                              <p className="text-[9px] text-wc-white/25 uppercase tracking-wider">ass.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {officialScorers.length === 0 && (
+                <p className="text-sm text-wc-white/20">Lista oficial ainda não disponível</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Campeão ────────────────────────────────────────────────────────── */}
+      {section === "campeao" && (
+        <div className="max-w-2xl mx-auto px-4 pt-5 pb-12">
+          {loadingGlobal && (
+            <div className="flex justify-center py-10">
+              <div className="w-6 h-6 rounded-full border-2 border-wc-gold/30 border-t-wc-gold animate-spin" />
+            </div>
+          )}
+
+          {!loadingGlobal && (
+            <>
+              <p className="text-[10px] font-bold tracking-widest uppercase text-wc-white/25 mb-3">Palpites do grupo</p>
+              {groupedWinners.length === 0 ? (
+                <p className="text-sm text-wc-white/20">Sem palpites ainda</p>
+              ) : (
+                <div className="space-y-3">
+                  {groupedWinners.map(({ team, users }) => {
+                    const flagUrl = getFlagUrl(team, "w40");
+                    return (
+                      <div
+                        key={team}
+                        className="rounded-xl border p-4"
+                        style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+                      >
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <Trophy size={12} className="text-wc-gold" />
+                            {flagUrl && (
+                              <img src={flagUrl} alt={team} width={18} height={13} style={{ borderRadius: 2 }} />
+                            )}
+                            <span className="text-sm font-bold text-wc-white">{team}</span>
+                          </div>
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(233,177,58,0.1)", color: "#e9b13a" }}
+                          >
+                            {users.length}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {users.map((u) => <UserBadge key={u} name={u} />)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Por Utilizador ─────────────────────────────────────────────────── */}
-      {tab === "user" && (
+      {section === "jogos" && tab === "user" && (
         <div className="max-w-2xl mx-auto px-4 pt-4 space-y-6">
           {/* User selector */}
           <div className="relative">
@@ -519,7 +742,7 @@ export default function PalpitesClient() {
       )}
 
       {/* ── Por Dia ────────────────────────────────────────────────────────── */}
-      {tab === "day" && (
+      {section === "jogos" && tab === "day" && (
         <div className="pt-4 pb-8 max-w-5xl mx-auto">
           {!selectedDay && days.length === 0 && (
             <div className="flex justify-center py-10">

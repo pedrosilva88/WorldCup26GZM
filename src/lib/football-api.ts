@@ -13,6 +13,14 @@ const PHASE_TO_STAGE: Record<string, string> = {
   final: "FINAL",
 };
 
+export interface ApiScorer {
+  player: { name: string };
+  team: { name: string };
+  goals: number;
+  assists: number | null;
+  penalties: number | null;
+}
+
 export interface ApiMatch {
   id: number;
   utcDate: string;
@@ -47,6 +55,11 @@ export async function getKnockoutMatches(
     apiKey
   );
   return json.matches ?? [];
+}
+
+export async function getTopScorers(apiKey: string): Promise<ApiScorer[]> {
+  const json = await fetchWC(`/competitions/${WC_CODE}/scorers?limit=20`, apiKey);
+  return json.scorers ?? [];
 }
 
 export async function getFinishedMatches(apiKey: string): Promise<ApiMatch[]> {
