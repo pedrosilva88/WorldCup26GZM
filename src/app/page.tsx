@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import LeaderboardSection from "@/components/LeaderboardSection";
+import TopScorersSection from "@/components/TopScorersSection";
 import HomePalpitesSection from "@/components/HomePalpitesSection";
 
 export const revalidate = 60;
@@ -15,6 +16,7 @@ export default function HomePage() {
       <div className="lg:max-w-[1400px] lg:mx-auto lg:px-8 lg:flex lg:gap-10 lg:items-start">
         <div className="lg:w-[420px] lg:shrink-0">
           <LeaderboardSection />
+          <TopScorersSection />
         </div>
         <div className="lg:flex-1 lg:min-w-0">
           <HomePalpitesSection />
