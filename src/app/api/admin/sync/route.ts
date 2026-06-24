@@ -133,6 +133,20 @@ async function syncFromApi() {
       const existingPhotos: Record<string, string | null> = {};
       for (const row of existing ?? []) existingPhotos[row.player_name] = row.photo_url;
 
+      // Update manual entries that now appear in the API (e.g. a player added manually who entered the top scorers list)
+      for (const s of scorers) {
+        await supabase
+          .from("top_scorers")
+          .update({
+            goals: s.goals ?? 0,
+            assists: s.assists ?? 0,
+            penalties: s.penalties ?? 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("player_name", s.player.name)
+          .eq("is_manual", true);
+      }
+
       await supabase.from("top_scorers").delete().eq("is_manual", false);
 
       const rows = [];

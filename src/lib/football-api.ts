@@ -58,7 +58,7 @@ export async function getKnockoutMatches(
 }
 
 export async function getTopScorers(apiKey: string): Promise<ApiScorer[]> {
-  const json = await fetchWC(`/competitions/${WC_CODE}/scorers?limit=20`, apiKey);
+  const json = await fetchWC(`/competitions/${WC_CODE}/scorers?limit=50`, apiKey);
   return json.scorers ?? [];
 }
 
