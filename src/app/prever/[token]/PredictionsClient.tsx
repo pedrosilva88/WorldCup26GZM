@@ -63,6 +63,7 @@ export default function PredictionsClient({ token }: Props) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState<"grupos" | "eliminatoria">("grupos");
+  const [activeKOPhase, setActiveKOPhase] = useState<Phase>("round_of_32");
   const [savingKO, setSavingKO] = useState(false);
   const [saveKOSuccess, setSaveKOSuccess] = useState(false);
   const [errorKO, setErrorKO] = useState("");
@@ -376,44 +377,74 @@ export default function PredictionsClient({ token }: Props) {
 
       {/* ── Grupos ─────────────────────────────────────────────────────────── */}
       {activeSection === "eliminatoria" && (
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-32">
-          {koPhases.length === 0 ? (
-            <p className="text-sm text-wc-white/30 text-center py-16">Nenhuma fase eliminatória gerada ainda.</p>
-          ) : (
-            <div className="space-y-8">
-              {koPhases.map((phase) => {
-                const phaseMatches = koMatches.filter((m) => m.phase === phase);
+        <div className="max-w-2xl mx-auto pb-32">
+          {/* KO phase sub-tabs */}
+          <div className="flex overflow-x-auto scrollbar-none px-4 gap-1 py-2 border-b border-white/5">
+            {KO_PHASES.map((phase) => {
+              const hasMatches = koMatches.some((m) => m.phase === phase);
+              const shortLabel: Record<string, string> = {
+                round_of_32: "16 Avos",
+                round_of_16: "Oitavos",
+                quarter_final: "Quartos",
+                semi_final: "Meias",
+                third_place: "3º Lugar",
+                final: "Final",
+              };
+              return (
+                <button
+                  key={phase}
+                  onClick={() => setActiveKOPhase(phase)}
+                  className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={
+                    activeKOPhase === phase
+                      ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)", color: "#0c0f13" }
+                      : hasMatches
+                      ? { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }
+                      : { background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.2)" }
+                  }
+                >
+                  {shortLabel[phase]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Phase content */}
+          <div className="px-4 pt-4">
+            {(() => {
+              const phaseMatches = koMatches.filter((m) => m.phase === activeKOPhase);
+              if (phaseMatches.length === 0) {
                 return (
-                  <div key={phase}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Swords size={14} className="text-wc-gold opacity-60" />
-                      <span className="text-xs font-bold tracking-widest uppercase text-wc-white/40">
-                        {PHASE_LABELS[phase]}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {phaseMatches.map((match) => {
-                        const pred = predictions[match.id] ?? { home_goals: "", away_goals: "", bet_1x2: "", bet_1x2_manual: false };
-                        const locked = isMatchLocked(match);
-                        const placeholder = isPlaceholder(match);
-                        return (
-                          <MatchCard
-                            key={match.id}
-                            match={match}
-                            home_goals={pred.home_goals}
-                            away_goals={pred.away_goals}
-                            disabled={locked || placeholder}
-                            onChange={(field, value) => updatePrediction(match.id, field, value)}
-                            showResult={locked}
-                          />
-                        );
-                      })}
-                    </div>
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                    <Swords size={28} className="text-wc-white/10" />
+                    <p className="text-sm text-wc-white/25 text-center">
+                      {PHASE_LABELS[activeKOPhase]} ainda não gerada.
+                    </p>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              }
+              return (
+                <div className="space-y-3">
+                  {phaseMatches.map((match) => {
+                    const pred = predictions[match.id] ?? { home_goals: "", away_goals: "", bet_1x2: "", bet_1x2_manual: false };
+                    const locked = isMatchLocked(match);
+                    const placeholder = isPlaceholder(match);
+                    return (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        home_goals={pred.home_goals}
+                        away_goals={pred.away_goals}
+                        disabled={locked || placeholder}
+                        onChange={(field, value) => updatePrediction(match.id, field, value)}
+                        showResult={locked}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 
