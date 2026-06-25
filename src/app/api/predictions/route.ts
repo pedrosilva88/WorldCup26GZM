@@ -28,11 +28,10 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Token inválido." }, { status: 401 });
 
-  // Load all group matches
+  // Load all matches (group + knockout)
   const { data: allMatches } = await supabase
     .from("matches")
-    .select("id, match_date, status")
-    .eq("phase", "group");
+    .select("id, match_date, status");
 
   const now = Date.now();
 

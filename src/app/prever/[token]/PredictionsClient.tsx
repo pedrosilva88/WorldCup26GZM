@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Match, User } from "@/types";
 import MatchCard from "@/components/MatchCard";
 import { GROUPS, PHASE_LABELS } from "@/lib/matches-data";
+import { Phase } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   Trophy,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   ArrowLeft,
   Lock,
+  Swords,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,6 +62,10 @@ export default function PredictionsClient({ token }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [activeSection, setActiveSection] = useState<"grupos" | "eliminatoria">("grupos");
+  const [savingKO, setSavingKO] = useState(false);
+  const [saveKOSuccess, setSaveKOSuccess] = useState(false);
+  const [errorKO, setErrorKO] = useState("");
 
   useEffect(() => {
     async function init() {
@@ -178,6 +184,58 @@ export default function PredictionsClient({ token }: Props) {
   };
 
 
+  const KO_PHASES: Phase[] = ["round_of_32", "round_of_16", "quarter_final", "semi_final", "third_place", "final"];
+  const isPlaceholder = (m: { home_team: string; away_team: string }) =>
+    m.home_team.startsWith("Jogo ") || m.away_team.startsWith("Jogo ");
+
+  const koMatches = matches.filter((m) => m.phase !== "group");
+  const koPhases = KO_PHASES.filter((p) => koMatches.some((m) => m.phase === p));
+  const editableKOMatches = koMatches.filter((m) => !isMatchLocked(m) && !isPlaceholder(m));
+  const filledKOCount = editableKOMatches.filter((m) => {
+    const p = predictions[m.id];
+    return p?.home_goals !== "" && p?.away_goals !== "";
+  }).length;
+
+  async function handleSaveKO() {
+    setSavingKO(true);
+    setErrorKO("");
+    setSaveKOSuccess(false);
+
+    const rows = editableKOMatches
+      .filter((m) => {
+        const p = predictions[m.id];
+        return p?.home_goals !== "" && p?.away_goals !== "";
+      })
+      .map((m) => {
+        const p = predictions[m.id];
+        const h = parseInt(p.home_goals);
+        const a = parseInt(p.away_goals);
+        return { match_id: m.id, home_goals: isNaN(h) ? 0 : h, away_goals: isNaN(a) ? 0 : a, bet_1x2: null };
+      });
+
+    if (rows.length === 0) {
+      setErrorKO("Preenche pelo menos um jogo.");
+      setSavingKO(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/predictions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, predictions: rows }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorKO(data.error ?? "Erro ao guardar."); return; }
+      setSaveKOSuccess(true);
+      setTimeout(() => setSaveKOSuccess(false), 3000);
+    } catch {
+      setErrorKO("Erro de ligação. Verifica a tua internet.");
+    } finally {
+      setSavingKO(false);
+    }
+  }
+
   async function handleSave() {
     setSubmitting(true);
     setError("");
@@ -255,16 +313,38 @@ export default function PredictionsClient({ token }: Props) {
           )}
         </div>
 
-        {/* Progress bar */}
-        {hasOpenMatches && (
+        {/* Section tabs */}
+        <div className="flex px-4 gap-2 pb-2">
+          {[
+            { key: "grupos", label: "GRUPOS" },
+            { key: "eliminatoria", label: "ELIMINATÓRIA", disabled: koPhases.length === 0 },
+          ].map(({ key, label, disabled }) => (
+            <button
+              key={key}
+              disabled={disabled}
+              onClick={() => setActiveSection(key as "grupos" | "eliminatoria")}
+              className="px-3 py-1 rounded-lg text-xs font-black tracking-widest transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+              style={
+                activeSection === key
+                  ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)", color: "#0c0f13" }
+                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Progress bar — grupos only */}
+        {activeSection === "grupos" && hasOpenMatches && (
           <div className="h-0.5" style={{ background: "rgba(233,177,58,0.15)" }}>
             <div className="h-full transition-all duration-300"
               style={{ background: "linear-gradient(90deg, #1fa45f, #e9b13a)", width: `${(completionCount / openMatches.length) * 100}%` }} />
           </div>
         )}
 
-        {/* Group tabs */}
-        <div className="flex overflow-x-auto scrollbar-none px-4 gap-1 py-2">
+        {/* Group tabs — grupos only */}
+        {activeSection === "grupos" && <div className="flex overflow-x-auto scrollbar-none px-4 gap-1 py-2">
           {GROUPS.map((g) => {
             const { filled, total } = groupCompletion(g);
             const allDone = total === 0 || filled === total;
@@ -291,10 +371,53 @@ export default function PredictionsClient({ token }: Props) {
               </button>
             );
           })}
-        </div>
+        </div>}
       </div>
 
-      {/* Matches */}
+      {/* ── Grupos ─────────────────────────────────────────────────────────── */}
+      {activeSection === "eliminatoria" && (
+        <div className="max-w-2xl mx-auto px-4 pt-4 pb-32">
+          {koPhases.length === 0 ? (
+            <p className="text-sm text-wc-white/30 text-center py-16">Nenhuma fase eliminatória gerada ainda.</p>
+          ) : (
+            <div className="space-y-8">
+              {koPhases.map((phase) => {
+                const phaseMatches = koMatches.filter((m) => m.phase === phase);
+                return (
+                  <div key={phase}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Swords size={14} className="text-wc-gold opacity-60" />
+                      <span className="text-xs font-bold tracking-widest uppercase text-wc-white/40">
+                        {PHASE_LABELS[phase]}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {phaseMatches.map((match) => {
+                        const pred = predictions[match.id] ?? { home_goals: "", away_goals: "", bet_1x2: "", bet_1x2_manual: false };
+                        const locked = isMatchLocked(match);
+                        const placeholder = isPlaceholder(match);
+                        return (
+                          <MatchCard
+                            key={match.id}
+                            match={match}
+                            home_goals={pred.home_goals}
+                            away_goals={pred.away_goals}
+                            disabled={locked || placeholder}
+                            onChange={(field, value) => updatePrediction(match.id, field, value)}
+                            showResult={locked}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeSection === "grupos" && (
       <div className="max-w-2xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
@@ -336,9 +459,10 @@ export default function PredictionsClient({ token }: Props) {
           </button>
         )}
       </div>
+      )}
 
-      {/* Global predictions */}
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-2">
+      {/* Global predictions — grupos only */}
+      {activeSection === "grupos" && <div className="max-w-2xl mx-auto px-4 pt-6 pb-2">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs font-bold tracking-widest uppercase text-wc-white/25">Previsões</span>
           <span className="font-display text-wc-gold text-lg tracking-wider">TORNEIO</span>
@@ -406,53 +530,76 @@ export default function PredictionsClient({ token }: Props) {
             )}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Sticky bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 backdrop-blur-md" style={{ background: "rgba(12,15,19,0.97)" }}>
         <div className="max-w-2xl mx-auto px-4 py-4">
-          {!hasOpenMatches ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock size={16} className="text-wc-white/30 shrink-0" />
-                <span className="text-sm text-wc-white/40">Jornadas encerradas</span>
+          {activeSection === "grupos" ? (
+            !hasOpenMatches ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock size={16} className="text-wc-white/30 shrink-0" />
+                  <span className="text-sm text-wc-white/40">Jornadas encerradas</span>
+                </div>
+                <Link href="/"
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark"
+                  style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
+                  Classificação
+                </Link>
               </div>
-              <Link href="/"
-                className="text-xs font-bold px-3 py-1.5 rounded-lg text-wc-dark"
-                style={{ background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }}>
-                Classificação
-              </Link>
-            </div>
+            ) : (
+              <>
+                {error && (
+                  <div className="flex items-center gap-2 text-sm text-wc-red mb-3 border border-wc-red/30 rounded-xl px-3 py-2"
+                    style={{ background: "rgba(230,51,18,0.1)" }}>
+                    <AlertCircle size={14} className="shrink-0" />{error}
+                  </div>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={!canSave || submitting}
+                  className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
+                  style={canSave && !submitting ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" } : { background: "rgba(255,255,255,0.08)" }}
+                >
+                  {submitting ? (
+                    <><Loader2 size={20} className="animate-spin text-wc-dark" /> A guardar...</>
+                  ) : saveSuccess ? (
+                    <><CheckCircle2 size={20} className="text-wc-green" /> <span className="text-wc-white">Guardado!</span></>
+                  ) : canSave ? (
+                    <><Trophy size={20} /> Guardar Palpites</>
+                  ) : (
+                    <span className="text-wc-white/30">
+                      {openMatches.length - completionCount > 0
+                        ? `Preenche todos os jogos (${openMatches.length - completionCount} em falta)`
+                        : "Preenche o vencedor e melhor marcador"}
+                    </span>
+                  )}
+                </button>
+              </>
+            )
           ) : (
             <>
-              {error && (
+              {errorKO && (
                 <div className="flex items-center gap-2 text-sm text-wc-red mb-3 border border-wc-red/30 rounded-xl px-3 py-2"
                   style={{ background: "rgba(230,51,18,0.1)" }}>
-                  <AlertCircle size={14} className="shrink-0" />{error}
+                  <AlertCircle size={14} className="shrink-0" />{errorKO}
                 </div>
               )}
               <button
-                onClick={handleSave}
-                disabled={!canSave || submitting}
+                onClick={handleSaveKO}
+                disabled={filledKOCount === 0 || savingKO}
                 className="w-full py-3.5 disabled:text-wc-white/20 font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base text-wc-dark"
-                style={
-                  canSave && !submitting
-                    ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }
-                    : { background: "rgba(255,255,255,0.08)" }
-                }
+                style={filledKOCount > 0 && !savingKO ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" } : { background: "rgba(255,255,255,0.08)" }}
               >
-                {submitting ? (
+                {savingKO ? (
                   <><Loader2 size={20} className="animate-spin text-wc-dark" /> A guardar...</>
-                ) : saveSuccess ? (
+                ) : saveKOSuccess ? (
                   <><CheckCircle2 size={20} className="text-wc-green" /> <span className="text-wc-white">Guardado!</span></>
-                ) : canSave ? (
-                  <><Trophy size={20} /> Guardar Palpites</>
+                ) : filledKOCount > 0 ? (
+                  <><Swords size={20} /> Guardar Eliminatória ({filledKOCount})</>
                 ) : (
-                  <span className="text-wc-white/30">
-                    {openMatches.length - completionCount > 0
-                      ? `Preenche todos os jogos (${openMatches.length - completionCount} em falta)`
-                      : "Preenche o vencedor e melhor marcador"}
-                  </span>
+                  <span className="text-wc-white/30">Preenche pelo menos um jogo</span>
                 )}
               </button>
             </>
