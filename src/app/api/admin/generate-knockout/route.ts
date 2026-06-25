@@ -36,8 +36,54 @@ const PHASE_MATCH_COUNT: Record<string, number> = {
   final: 1,
 };
 
+function isAuthorized(req: NextRequest, isAdmin: boolean): boolean {
+  const cronSecret = req.headers.get("x-cron-secret");
+  const authHeader = req.headers.get("authorization");
+  const isCron =
+    cronSecret === process.env.ADMIN_PASSWORD ||
+    authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  return isAdmin || isCron;
+}
+
+// GET — cron-friendly: refresh team names for all already-generated knockout phases
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req, await isAdminAuthenticated())) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  const apiKey = process.env.FOOTBALL_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "API key não configurada." }, { status: 500 });
+
+  const supabase = createAdminClient();
+  let totalUpdated = 0;
+
+  for (const phase of PHASE_ORDER) {
+    try {
+      const { data: existing } = await supabase
+        .from("matches").select("id, api_match_id, match_order").eq("phase", phase);
+      if (!existing || existing.length === 0) continue;
+
+      const apiMatches = await getKnockoutMatches(phase, apiKey);
+      const orderStart = PHASE_ORDER_START[phase];
+
+      for (const [idx, m] of apiMatches.entries()) {
+        if (!m.homeTeam?.name || !m.awayTeam?.name) continue;
+        const matchOrder = orderStart + idx;
+        const existingMatch = existing.find((e) => e.api_match_id === m.id || e.match_order === matchOrder);
+        if (!existingMatch) continue;
+        await supabase.from("matches")
+          .update({ home_team: translateTeam(m.homeTeam.name), away_team: translateTeam(m.awayTeam.name), api_match_id: m.id })
+          .eq("id", existingMatch.id);
+        totalUpdated++;
+      }
+    } catch { /* API may not have data for this phase yet */ }
+  }
+
+  return NextResponse.json({ success: true, updated: totalUpdated });
+}
+
 export async function POST(req: NextRequest) {
-  if (!(await isAdminAuthenticated())) {
+  if (!isAuthorized(req, await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
