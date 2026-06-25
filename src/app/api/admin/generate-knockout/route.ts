@@ -73,6 +73,11 @@ export async function POST(req: NextRequest) {
           // Refresh mode: update existing rows by api_match_id or match_order
           let updated = 0;
           for (const [idx, m] of apiMatches.entries()) {
+            const homeTeam = m.homeTeam.name ? translateTeam(m.homeTeam.name) : null;
+            const awayTeam = m.awayTeam.name ? translateTeam(m.awayTeam.name) : null;
+            // Only update teams when both are known
+            if (!homeTeam || !awayTeam) continue;
+
             const matchOrder = orderStart + idx;
             const existing = existingMatches!.find(
               (e) => e.api_match_id === m.id || e.match_order === matchOrder
@@ -82,8 +87,8 @@ export async function POST(req: NextRequest) {
             await supabase
               .from("matches")
               .update({
-                home_team: translateTeam(m.homeTeam.name),
-                away_team: translateTeam(m.awayTeam.name),
+                home_team: homeTeam,
+                away_team: awayTeam,
                 match_date: m.utcDate ?? null,
                 api_match_id: m.id,
               })
@@ -93,18 +98,29 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ success: true, phase, source, updated, mode: "refresh" });
         }
 
-        // Insert mode
-        const rows = apiMatches.map((m, idx) => ({
-          phase,
-          home_team: translateTeam(m.homeTeam.name),
-          away_team: translateTeam(m.awayTeam.name),
-          match_date: m.utcDate ?? null,
-          home_score: m.status === "FINISHED" ? (m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null) : null,
-          away_score: m.status === "FINISHED" ? (m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null) : null,
-          status: m.status === "FINISHED" ? "finished" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "scheduled",
-          api_match_id: m.id,
-          match_order: orderStart + idx,
-        }));
+        // Insert mode — only insert matches where both teams are known
+        const rows = apiMatches
+          .map((m, idx) => {
+            const homeTeam = m.homeTeam.name ? translateTeam(m.homeTeam.name) : null;
+            const awayTeam = m.awayTeam.name ? translateTeam(m.awayTeam.name) : null;
+            if (!homeTeam || !awayTeam) return null;
+            return {
+              phase,
+              home_team: homeTeam,
+              away_team: awayTeam,
+              match_date: m.utcDate ?? null,
+              home_score: m.status === "FINISHED" ? (m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null) : null,
+              away_score: m.status === "FINISHED" ? (m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null) : null,
+              status: m.status === "FINISHED" ? "finished" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "scheduled",
+              api_match_id: m.id,
+              match_order: orderStart + idx,
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null);
+
+        if (rows.length === 0) {
+          return NextResponse.json({ success: true, phase, source: "no-teams-known", inserted: 0, mode: "create" });
+        }
 
         const { error, data } = await supabase.from("matches").insert(rows).select();
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
