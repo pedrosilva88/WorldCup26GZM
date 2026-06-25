@@ -42,3 +42,11 @@ next-env.d.ts
 .mcp.json
 .claude/
 supabase/.temp/
+
+# design-sync
+.design-sync/
+.ds-sync/
+_ds_entry.tsx
+design-sync.config.json
+ds-build-css/
+ds-bundle/
