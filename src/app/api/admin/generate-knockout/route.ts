@@ -98,29 +98,27 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ success: true, phase, source, updated, mode: "refresh" });
         }
 
-        // Insert mode — only insert matches where both teams are known
-        const rows = apiMatches
-          .map((m, idx) => {
-            const homeTeam = m.homeTeam.name ? translateTeam(m.homeTeam.name) : null;
-            const awayTeam = m.awayTeam.name ? translateTeam(m.awayTeam.name) : null;
-            if (!homeTeam || !awayTeam) return null;
-            return {
-              phase,
-              home_team: homeTeam,
-              away_team: awayTeam,
-              match_date: m.utcDate ?? null,
-              home_score: m.status === "FINISHED" ? (m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null) : null,
-              away_score: m.status === "FINISHED" ? (m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null) : null,
-              status: m.status === "FINISHED" ? "finished" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "scheduled",
-              api_match_id: m.id,
-              match_order: orderStart + idx,
-            };
-          })
-          .filter((r): r is NonNullable<typeof r> => r !== null);
-
-        if (rows.length === 0) {
-          return NextResponse.json({ success: true, phase, source: "no-teams-known", inserted: 0, mode: "create" });
-        }
+        // Insert mode — use real names when known, placeholder when TBD
+        const phaseLabelMap: Record<string, string> = {
+          round_of_16: "Oitavos", quarter_final: "Quartos",
+          semi_final: "Meias", third_place: "3º/4º", final: "Final",
+        };
+        const phaseLabel = phaseLabelMap[phase] ?? phase;
+        const rows = apiMatches.map((m, idx) => {
+          const homeTeam = m.homeTeam?.name ? translateTeam(m.homeTeam.name) : null;
+          const awayTeam = m.awayTeam?.name ? translateTeam(m.awayTeam.name) : null;
+          return {
+            phase,
+            home_team: homeTeam ?? `Jogo ${idx + 1} ${phaseLabel} A`,
+            away_team: awayTeam ?? `Jogo ${idx + 1} ${phaseLabel} B`,
+            match_date: m.utcDate ?? null,
+            home_score: m.status === "FINISHED" ? (m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null) : null,
+            away_score: m.status === "FINISHED" ? (m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null) : null,
+            status: m.status === "FINISHED" ? "finished" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "scheduled",
+            api_match_id: m.id,
+            match_order: orderStart + idx,
+          };
+        });
 
         const { error, data } = await supabase.from("matches").insert(rows).select();
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
