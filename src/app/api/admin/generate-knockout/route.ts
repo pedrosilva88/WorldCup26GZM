@@ -145,18 +145,13 @@ export async function POST(req: NextRequest) {
         }
 
         // Insert mode — use real names when known, placeholder when TBD
-        const phaseLabelMap: Record<string, string> = {
-          round_of_32: "16 Avos", round_of_16: "Oitavos", quarter_final: "Quartos",
-          semi_final: "Meias", third_place: "3º/4º", final: "Final",
-        };
-        const phaseLabel = phaseLabelMap[phase] ?? phase;
         const rows = apiMatches.map((m, idx) => {
           const homeTeam = m.homeTeam?.name ? translateTeam(m.homeTeam.name) : null;
           const awayTeam = m.awayTeam?.name ? translateTeam(m.awayTeam.name) : null;
           return {
             phase,
-            home_team: homeTeam ?? `Jogo ${idx + 1} ${phaseLabel} A`,
-            away_team: awayTeam ?? `Jogo ${idx + 1} ${phaseLabel} B`,
+            home_team: homeTeam ?? `Jogo ${idx + 1} Team A`,
+            away_team: awayTeam ?? `Jogo ${idx + 1} Team B`,
             match_date: m.utcDate ?? null,
             home_score: m.status === "FINISHED" ? (m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null) : null,
             away_score: m.status === "FINISHED" ? (m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null) : null,
@@ -192,10 +187,8 @@ export async function POST(req: NextRequest) {
   } else {
     const count = PHASE_MATCH_COUNT[phase];
     const orderStart = PHASE_ORDER_START[phase];
-    const phaseName = phase === "round_of_16" ? "Oitavos" : phase === "quarter_final" ? "Quartos"
-      : phase === "semi_final" ? "Meias" : phase === "third_place" ? "3º/4º Lugar" : "Final";
     rows = Array.from({ length: count }, (_, i) => ({
-      phase, home_team: `Jogo ${i + 1} ${phaseName} A`, away_team: `Jogo ${i + 1} ${phaseName} B`,
+      phase, home_team: `Jogo ${i + 1} Team A`, away_team: `Jogo ${i + 1} Team B`,
       match_date: null, home_score: null, away_score: null,
       status: "scheduled", api_match_id: null, match_order: orderStart + i,
     }));

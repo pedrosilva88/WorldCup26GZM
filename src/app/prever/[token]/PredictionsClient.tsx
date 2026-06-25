@@ -186,7 +186,7 @@ export default function PredictionsClient({ token }: Props) {
 
   const KO_PHASES: Phase[] = ["round_of_32", "round_of_16", "quarter_final", "semi_final", "third_place", "final"];
   const isPlaceholder = (m: { home_team: string; away_team: string }) =>
-    m.home_team.startsWith("Jogo ") || m.away_team.startsWith("Jogo ");
+    m.home_team.endsWith("Team A") || m.away_team.endsWith("Team B");
 
   const koMatches = matches.filter((m) => m.phase !== "group");
   const koPhases = KO_PHASES.filter((p) => koMatches.some((m) => m.phase === p));
@@ -354,20 +354,20 @@ export default function PredictionsClient({ token }: Props) {
                   "shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                   activeGroup === g
                     ? "text-wc-dark"
-                    : allDone && total > 0
+                    : allDone
                     ? "text-wc-green border border-wc-green/30"
                     : "text-wc-white/50 hover:text-wc-white border border-transparent"
                 )}
                 style={
                   activeGroup === g
                     ? { background: "linear-gradient(135deg, #e9b13a, #f2c56a)" }
-                    : allDone && total > 0
+                    : allDone
                     ? { background: "rgba(0,166,82,0.1)" }
                     : { background: "rgba(255,255,255,0.05)" }
                 }>
                 {g}
                 {total > 0 && !allDone && <span className="ml-1 opacity-60">{filled}/{total}</span>}
-                {allDone && total > 0 && <span className="ml-1">✓</span>}
+                {allDone && <span className="ml-1">✓</span>}
               </button>
             );
           })}
