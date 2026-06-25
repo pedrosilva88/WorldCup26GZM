@@ -6,8 +6,8 @@ import { GROUPS, PHASE_LABELS } from "@/lib/matches-data";
 import { cn } from "@/lib/utils";
 import {
   Lock, Loader2, CheckCircle2, AlertCircle, RefreshCw,
-  Trophy, Users, Copy, Check, LogOut, Swords, Play,
-  PauseCircle, Zap, UserPlus, Trash2, ChevronDown, ChevronUp,
+  Trophy, Users, Copy, Check, LogOut, Swords,
+  Zap, UserPlus, Trash2, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Phase } from "@/types";
 
@@ -47,7 +47,6 @@ export default function AdminClient() {
   const [savedMatch, setSavedMatch] = useState<string | null>(null);
 
   // Knockout view
-  const [openPhase, setOpenPhase] = useState<string | null>(null);
   const [generatingPhase, setGeneratingPhase] = useState<string | null>(null);
   const [generateMsg, setGenerateMsg] = useState<Record<string, string>>({});
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
@@ -97,16 +96,14 @@ export default function AdminClient() {
   const loadData = useCallback(async () => {
     setLoadingData(true);
     try {
-      const [mRes, uRes, lbRes, phaseRes] = await Promise.all([
+      const [mRes, uRes, lbRes] = await Promise.all([
         fetch("/api/admin/matches"),
         fetch("/api/admin/users"),
         fetch("/api/leaderboard"),
-        fetch("/api/admin/knockout-phase"),
       ]);
       const mData = await mRes.json();
       const uRaw = await uRes.json();
       const lbData = await lbRes.json();
-      const { phase } = await phaseRes.json();
 
       const lbMap: Record<string, number> = {};
       (Array.isArray(lbData) ? lbData : []).forEach((e: any) => { lbMap[e.user_id] = e.total_points; });
@@ -117,7 +114,6 @@ export default function AdminClient() {
 
       setMatches(Array.isArray(mData) ? mData : []);
       setUsers(usersWithPoints);
-      setOpenPhase(phase);
 
       const inputs: Record<string, { home: string; away: string }> = {};
       (Array.isArray(mData) ? mData : []).forEach((m: Match) => {
@@ -239,15 +235,6 @@ export default function AdminClient() {
     } finally { setGeneratingPhase(null); }
   }
 
-  async function setKnockoutPhaseOpen(phase: string | null) {
-    await fetch("/api/admin/knockout-phase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phase }),
-    });
-    setOpenPhase(phase);
-  }
-
   async function saveSlot(matchId: string) {
     const s = slotEdits[matchId];
     if (!s) return;
@@ -297,13 +284,11 @@ export default function AdminClient() {
     await loadData();
   }
 
-  async function copyLink(userId: string, isKnockout = false) {
+  async function copyLink(userId: string) {
     const res = await fetch(`/api/admin/generate-link?user_id=${userId}`);
     const data = await res.json();
-    const link = isKnockout ? data.link.replace("/prever/", "/eliminatoria/") : data.link;
-    await navigator.clipboard.writeText(link);
-    const key = isKnockout ? `ko-${userId}` : userId;
-    setCopiedLink(key);
+    await navigator.clipboard.writeText(data.link);
+    setCopiedLink(userId);
     setTimeout(() => setCopiedLink(null), 2000);
   }
 
@@ -424,15 +409,6 @@ export default function AdminClient() {
                   <Swords size={18} className="text-wc-gold" />
                   <h2 className="text-lg font-bold text-wc-white">Eliminatórias</h2>
                 </div>
-                {openPhase && (
-                  <div className="flex items-center gap-2 bg-emerald-900/20 border border-emerald-700/30 rounded-xl px-4 py-2.5 mb-5 text-sm">
-                    <Play size={14} className="text-emerald-400 shrink-0" />
-                    <span className="text-emerald-300">Aberta: <strong>{PHASE_LABELS[openPhase]}</strong></span>
-                    <button onClick={() => setKnockoutPhaseOpen(null)} className="ml-auto text-xs text-wc-white/30 hover:text-wc-red transition-colors flex items-center gap-1">
-                      <PauseCircle size={12} /> Fechar
-                    </button>
-                  </div>
-                )}
                 <div className="flex overflow-x-auto gap-1 mb-5 pb-1">
                   {KNOCKOUT_PHASES.map(({ phase, label }) => (
                     <button key={phase} onClick={() => setActiveKOPhase(phase)}
@@ -448,7 +424,6 @@ export default function AdminClient() {
                   const phaseInfo = KNOCKOUT_PHASES.find((p) => p.phase === activeKOPhase)!;
                   const generated = phaseGenerated(activeKOPhase);
                   const phaseMatches = knockoutPhaseMatches(activeKOPhase);
-                  const isOpen = openPhase === activeKOPhase;
                   return (
                     <div>
                       <div className="flex items-center justify-between mb-4">
@@ -457,12 +432,6 @@ export default function AdminClient() {
                           <p className="text-xs text-wc-white/30">{phaseInfo.matches} jogos</p>
                         </div>
                         <div className="flex gap-2">
-                          {generated && !isOpen && (
-                            <button onClick={() => setKnockoutPhaseOpen(activeKOPhase)}
-                              className="flex items-center gap-1.5 text-xs bg-emerald-700/20 text-emerald-400 border border-emerald-700/30 px-3 py-1.5 rounded-lg hover:bg-emerald-700/30 transition-all">
-                              <Play size={12} /> Abrir
-                            </button>
-                          )}
                           <button onClick={() => generateKnockout(activeKOPhase)} disabled={generatingPhase === activeKOPhase}
                             className="flex items-center gap-1.5 text-xs bg-wc-gold/20 text-wc-gold border border-wc-gold/30 px-3 py-1.5 rounded-lg hover:bg-wc-gold/30 transition-all disabled:opacity-40">
                             {generatingPhase === activeKOPhase ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
@@ -581,14 +550,6 @@ export default function AdminClient() {
                                   "border-wc-blue-mid/40 text-wc-white/40 hover:text-wc-gold hover:border-wc-gold/30")}>
                               {copiedLink === u.id ? <><CheckCircle2 size={11} /> OK</> : <><Copy size={11} /> Link</>}
                             </button>
-                            {openPhase && (
-                              <button onClick={() => copyLink(u.id, true)}
-                                className={cn("flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border transition-all",
-                                  copiedLink === `ko-${u.id}` ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" :
-                                    "border-wc-gold/30 text-wc-gold/60 hover:text-wc-gold hover:border-wc-gold/60")}>
-                                {copiedLink === `ko-${u.id}` ? <><CheckCircle2 size={11} /> OK</> : <><Swords size={11} /> KO</>}
-                              </button>
-                            )}
                             <button onClick={() => expandUser(u.id)}
                               className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg border border-wc-blue-mid/40 text-wc-white/30 hover:text-wc-white hover:border-wc-blue-mid/60 transition-all">
                               {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}

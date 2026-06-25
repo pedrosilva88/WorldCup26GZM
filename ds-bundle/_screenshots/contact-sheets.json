@@ -1,0 +1,14 @@
+[
+  {
+    "sheet": 1,
+    "components": [
+      "Header",
+      "HeroSection",
+      "HomePalpitesSection",
+      "Leaderboard",
+      "LeaderboardSection",
+      "MatchCard",
+      "RegisterSection"
+    ]
+  }
+]
