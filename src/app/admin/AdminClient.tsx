@@ -230,8 +230,10 @@ export default function AdminClient() {
       const data = await res.json();
       if (!res.ok) setGenerateMsg((p) => ({ ...p, [phase]: `✗ ${data.error}` }));
       else {
-        const src = data.source === "api" ? "via API" : "com placeholders";
-        setGenerateMsg((p) => ({ ...p, [phase]: `✓ ${data.inserted} jogos gerados ${src}` }));
+        const msg = data.mode === "refresh"
+          ? `✓ ${data.updated ?? 0} jogos atualizados via API`
+          : `✓ ${data.inserted ?? 0} jogos gerados ${data.source === "api" ? "via API" : "com placeholders"}`;
+        setGenerateMsg((p) => ({ ...p, [phase]: msg }));
         await loadData();
       }
     } finally { setGeneratingPhase(null); }
@@ -461,13 +463,11 @@ export default function AdminClient() {
                               <Play size={12} /> Abrir
                             </button>
                           )}
-                          {!generated && (
-                            <button onClick={() => generateKnockout(activeKOPhase)} disabled={generatingPhase === activeKOPhase}
-                              className="flex items-center gap-1.5 text-xs bg-wc-gold/20 text-wc-gold border border-wc-gold/30 px-3 py-1.5 rounded-lg hover:bg-wc-gold/30 transition-all disabled:opacity-40">
-                              {generatingPhase === activeKOPhase ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                              Gerar via API
-                            </button>
-                          )}
+                          <button onClick={() => generateKnockout(activeKOPhase)} disabled={generatingPhase === activeKOPhase}
+                            className="flex items-center gap-1.5 text-xs bg-wc-gold/20 text-wc-gold border border-wc-gold/30 px-3 py-1.5 rounded-lg hover:bg-wc-gold/30 transition-all disabled:opacity-40">
+                            {generatingPhase === activeKOPhase ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                            {generated ? "Atualizar via API" : "Gerar via API"}
+                          </button>
                         </div>
                       </div>
                       {generateMsg[activeKOPhase] && (

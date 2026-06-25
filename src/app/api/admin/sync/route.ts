@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { calculatePoints } from "@/lib/scoring";
-import { translateTeam, getTopScorers } from "@/lib/football-api";
+import { translateTeam, getTopScorers, getKnockoutMatches } from "@/lib/football-api";
+import { Phase } from "@/types";
 import { Match, Prediction } from "@/types";
 
 const WC_2026_CODE = "WC";
@@ -171,6 +172,29 @@ async function syncFromApi() {
     }
   } catch {
     // Scorers endpoint may not be available on current API plan — silently skip
+  }
+
+  // Refresh knockout team names for any phases already generated
+  const KO_PHASES: Phase[] = ["round_of_32", "round_of_16", "quarter_final", "semi_final", "third_place", "final"];
+  const KO_ORDER_START: Record<string, number> = { round_of_32: 73, round_of_16: 89, quarter_final: 97, semi_final: 101, third_place: 103, final: 104 };
+  if (apiKey) {
+    for (const phase of KO_PHASES) {
+      try {
+        const { data: existing } = await supabase.from("matches").select("id, api_match_id, match_order").eq("phase", phase);
+        if (!existing || existing.length === 0) continue;
+        const apiMatches = await getKnockoutMatches(phase, apiKey);
+        const orderStart = KO_ORDER_START[phase];
+        for (const [idx, m] of apiMatches.entries()) {
+          if (!m.homeTeam?.name || !m.awayTeam?.name) continue;
+          const matchOrder = orderStart + idx;
+          const existingMatch = existing.find((e) => e.api_match_id === m.id || e.match_order === matchOrder);
+          if (!existingMatch) continue;
+          await supabase.from("matches")
+            .update({ home_team: translateTeam(m.homeTeam.name), away_team: translateTeam(m.awayTeam.name), api_match_id: m.id })
+            .eq("id", existingMatch.id);
+        }
+      } catch { /* skip — API may not have data for this phase yet */ }
+    }
   }
 
   return { synced, errors: errors.length > 0 ? errors : undefined };

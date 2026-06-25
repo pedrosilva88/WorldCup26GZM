@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
         // Insert mode — use real names when known, placeholder when TBD
         const phaseLabelMap: Record<string, string> = {
-          round_of_16: "Oitavos", quarter_final: "Quartos",
+          round_of_32: "16 Avos", round_of_16: "Oitavos", quarter_final: "Quartos",
           semi_final: "Meias", third_place: "3º/4º", final: "Final",
         };
         const phaseLabel = phaseLabelMap[phase] ?? phase;
