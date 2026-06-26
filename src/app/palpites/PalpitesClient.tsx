@@ -6,6 +6,7 @@ import { Match } from "@/types";
 import MatchCard from "@/components/MatchCard";
 import { cn } from "@/lib/utils";
 import { Trophy, Star, ArrowLeft, ChevronDown } from "lucide-react";
+import { PHASE_LABELS } from "@/lib/matches-data";
 import Link from "next/link";
 import { getFlagUrl } from "@/lib/flags";
 
@@ -48,7 +49,8 @@ interface DayMatch {
   status: string;
   home_score: number | null;
   away_score: number | null;
-  group: string;
+  group: string | null;
+  phase: string;
   match_order: number;
   matchday?: number | null;
   predictions: UserPred[];
@@ -364,7 +366,7 @@ export default function PalpitesClient() {
   // Group user matches by Lisbon day (date-ordered)
   const matchesByDay = (() => {
     const sorted = userMatches
-      .filter((m) => m.match_date && m.phase === "group")
+      .filter((m) => m.match_date)
       .sort((a, b) => new Date(a.match_date!).getTime() - new Date(b.match_date!).getTime());
     const groups: { day: string; matches: Match[] }[] = [];
     for (const m of sorted) {
@@ -376,13 +378,14 @@ export default function PalpitesClient() {
     return groups;
   })();
 
-  // Group day matches by group (preserving chronological order within group changes)
+  // Group day matches by phase+group
   const dayMatchesByGroup = (() => {
-    const sections: { group: string; matches: DayMatch[] }[] = [];
+    const sections: { key: string; phase: string; group: string | null; matches: DayMatch[] }[] = [];
     for (const m of dayMatches) {
+      const key = m.phase === "group" ? `group-${m.group}` : m.phase;
       const last = sections[sections.length - 1];
-      if (last?.group === m.group) last.matches.push(m);
-      else sections.push({ group: m.group, matches: [m] });
+      if (last?.key === key) last.matches.push(m);
+      else sections.push({ key, phase: m.phase, group: m.group ?? null, matches: [m] });
     }
     return sections;
   })();
@@ -773,16 +776,24 @@ export default function PalpitesClient() {
 
           {selectedDay && !loadingDay && (
             <div className="space-y-6 px-4">
-              {dayMatchesByGroup.map(({ group, matches: gms }, gi) => (
-                <div key={`${group}-${gi}`}>
-                  {/* Group header */}
+              {dayMatchesByGroup.map(({ key, phase, group, matches: gms }) => (
+                <div key={key}>
+                  {/* Section header */}
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-[10px] font-bold tracking-widest uppercase text-wc-white/20">
-                      Fase de Grupos
-                    </span>
-                    <span className="font-display text-wc-gold text-base tracking-wider">
-                      GRUPO {group}
-                    </span>
+                    {phase === "group" ? (
+                      <>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-wc-white/20">
+                          Fase de Grupos
+                        </span>
+                        <span className="font-display text-wc-gold text-base tracking-wider">
+                          GRUPO {group}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-display text-wc-gold text-base tracking-wider uppercase">
+                        {PHASE_LABELS[phase] ?? phase}
+                      </span>
+                    )}
                     <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.05)" }} />
                   </div>
 
