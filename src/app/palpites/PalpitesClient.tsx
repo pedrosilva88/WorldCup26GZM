@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Match } from "@/types";
 import MatchCard from "@/components/MatchCard";
@@ -393,6 +393,13 @@ export default function PalpitesClient() {
   const today = new Date().toLocaleDateString("sv", { timeZone: "Europe/Lisbon" });
   const selectedLbUser = lbUsers.find((u) => u.user_id === selectedUserId);
 
+  const dayStripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectedDay || !dayStripRef.current) return;
+    const btn = dayStripRef.current.querySelector<HTMLElement>(`[data-date="${selectedDay}"]`);
+    btn?.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+  }, [selectedDay]);
+
   return (
     <div className="min-h-screen pb-16">
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
@@ -469,7 +476,7 @@ export default function PalpitesClient() {
 
         {/* Day strip (Por Dia only) */}
         {section === "jogos" && tab === "day" && days.length > 0 && (
-          <div className="flex overflow-x-auto scrollbar-none px-4 gap-2 py-2.5">
+          <div ref={dayStripRef} className="flex overflow-x-auto scrollbar-none px-4 gap-2 py-2.5">
             {days.map((d) => {
               const isPast = d < today;
               const isToday = d === today;
@@ -477,6 +484,7 @@ export default function PalpitesClient() {
               return (
                 <button
                   key={d}
+                  data-date={d}
                   onClick={() => setSelectedDay(d)}
                   className="flex-shrink-0 px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap border transition-all"
                   style={
