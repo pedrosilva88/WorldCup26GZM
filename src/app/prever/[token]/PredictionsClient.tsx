@@ -211,7 +211,7 @@ export default function PredictionsClient({ token }: Props) {
         const p = predictions[m.id];
         const h = parseInt(p.home_goals);
         const a = parseInt(p.away_goals);
-        return { match_id: m.id, home_goals: isNaN(h) ? 0 : h, away_goals: isNaN(a) ? 0 : a, bet_1x2: null };
+        return { match_id: m.id, home_goals: isNaN(h) ? 0 : h, away_goals: isNaN(a) ? 0 : a, bet_1x2: p.bet_1x2 || null };
       });
 
     if (rows.length === 0) {
@@ -435,8 +435,10 @@ export default function PredictionsClient({ token }: Props) {
                         match={match}
                         home_goals={pred.home_goals}
                         away_goals={pred.away_goals}
+                        bet_1x2={pred.bet_1x2}
                         disabled={locked || placeholder}
                         onChange={(field, value) => updatePrediction(match.id, field, value)}
+                        onChangeBet={(value) => updateBet(match.id, value)}
                         showResult={locked}
                       />
                     );
